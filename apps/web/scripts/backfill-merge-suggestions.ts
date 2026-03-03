@@ -46,7 +46,7 @@ const LLM_CONFIDENCE_THRESHOLD = 0.75
 const CANDIDATE_LIMIT = 5
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 1000
-const ASSESSMENT_MODEL = 'google/gemini-3.1-flash-preview'
+const ASSESSMENT_MODEL = 'google/gemini-3.1-flash-lite-preview'
 
 // Parse CLI arguments
 const args = process.argv.slice(2)

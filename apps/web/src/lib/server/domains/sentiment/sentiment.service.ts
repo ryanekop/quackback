@@ -2,7 +2,7 @@
  * Sentiment analysis service.
  *
  * Analyzes customer feedback to classify sentiment as positive, neutral, or negative.
- * Uses OpenAI google/gemini-3-flash-preview via Cloudflare AI Gateway.
+ * Uses OpenAI google/gemini-3.1-flash-lite-preview via Cloudflare AI Gateway.
  */
 
 import { db, postSentiment, posts, eq, and, gte, lte, sql, count, isNull } from '@/lib/server/db'
@@ -55,7 +55,7 @@ function isValidSentiment(value: unknown): value is Sentiment {
 }
 
 /**
- * Analyze sentiment using OpenAI google/gemini-3-flash-preview.
+ * Analyze sentiment using OpenAI google/gemini-3.1-flash-lite-preview.
  */
 export async function analyzeSentiment(
   title: string,
@@ -70,7 +70,7 @@ export async function analyzeSentiment(
   try {
     const response = await withRetry(() =>
       openai.chat.completions.create({
-        model: 'google/gemini-3-flash-preview',
+        model: 'google/gemini-3.1-flash-lite-preview',
         max_completion_tokens: 1000,
         messages: [
           { role: 'system', content: SENTIMENT_PROMPT },
@@ -89,7 +89,7 @@ export async function analyzeSentiment(
     return {
       sentiment: parsed.sentiment,
       confidence: parsed.confidence,
-      model: 'google/gemini-3-flash-preview',
+      model: 'google/gemini-3.1-flash-lite-preview',
       inputTokens: response.usage?.prompt_tokens,
       outputTokens: response.usage?.completion_tokens,
     }
