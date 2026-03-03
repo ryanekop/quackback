@@ -196,6 +196,7 @@ function RoadmapModalContent({ postId, currentUser, onClose }: RoadmapModalConte
               board={post.board}
               authorName={post.authorName}
               authorAvatarUrl={(post.principalId && post.avatarUrls?.[post.principalId]) || null}
+              authorPrincipalId={post.principalId}
               createdAt={new Date(post.createdAt)}
               tags={post.tags}
               roadmaps={postRoadmaps}

@@ -76,6 +76,8 @@ interface MetadataSidebarProps {
   board: { name: string; slug: string }
   authorName: string | null
   authorAvatarUrl?: string | null
+  /** Principal ID of the author (used to link to admin user detail) */
+  authorPrincipalId?: string | null
   createdAt: Date
   tags?: Array<{ id: string; name: string; color: string }>
   roadmaps?: Array<{ id: string; name: string; slug: string }>
@@ -114,6 +116,7 @@ export function MetadataSidebar({
   board,
   authorName,
   authorAvatarUrl,
+  authorPrincipalId,
   createdAt,
   tags = [],
   roadmaps = [],
@@ -479,15 +482,35 @@ export function MetadataSidebar({
             <UserIcon className="h-4 w-4" />
             <span>Author</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Avatar className="h-5 w-5">
-              {authorAvatarUrl && (
-                <AvatarImage src={authorAvatarUrl} alt={authorName || 'Author'} />
-              )}
-              <AvatarFallback className="text-[9px]">{getInitials(authorName)}</AvatarFallback>
-            </Avatar>
-            <span className="text-sm font-medium text-foreground">{authorName || 'Anonymous'}</span>
-          </div>
+          {canEdit && authorPrincipalId ? (
+            <Link
+              to="/admin/users"
+              search={{ selected: authorPrincipalId }}
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            >
+              <Avatar className="h-5 w-5">
+                {authorAvatarUrl && (
+                  <AvatarImage src={authorAvatarUrl} alt={authorName || 'Author'} />
+                )}
+                <AvatarFallback className="text-[9px]">{getInitials(authorName)}</AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium text-foreground underline decoration-muted-foreground/30 underline-offset-2">
+                {authorName || 'Anonymous'}
+              </span>
+            </Link>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <Avatar className="h-5 w-5">
+                {authorAvatarUrl && (
+                  <AvatarImage src={authorAvatarUrl} alt={authorName || 'Author'} />
+                )}
+                <AvatarFallback className="text-[9px]">{getInitials(authorName)}</AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium text-foreground">
+                {authorName || 'Anonymous'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Subscribe section - hidden in admin mode */}
