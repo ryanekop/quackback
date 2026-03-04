@@ -43,12 +43,12 @@ export function MergeConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Merge these posts?</AlertDialogTitle>
+          <AlertDialogTitle>Consolidate these posts?</AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <p>
-                The duplicate will be hidden and its votes and comments
-                transferred to the surviving post.
+                All votes and comments from the duplicate will be transferred
+                to the kept post. Voters will only be counted once.
               </p>
 
               {/* Direction visual — compact post cards stacked vertically */}
@@ -56,19 +56,19 @@ export function MergeConfirmDialog({
                 <CompactPostCard post={duplicatePost} label="Duplicate" />
                 <div className="flex items-center gap-1.5 pl-2 text-muted-foreground/50">
                   <ArrowDownIcon className="h-3 w-3 shrink-0" />
-                  <span className="text-[11px]">merges into</span>
+                  <span className="text-[11px]">folds into</span>
                 </div>
-                <CompactPostCard post={canonicalPost} />
+                <CompactPostCard post={canonicalPost} label="Kept" />
               </div>
 
               {/* What happens list */}
               <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-                <li>The duplicate post will be hidden from public view</li>
                 <li>
-                  Votes and comments will be combined ({preview.voteCount} votes,{' '}
-                  {preview.commentCount} comments total)
+                  The kept post will have ~{preview.voteCount} votes and{' '}
+                  {preview.commentCount} comments after consolidation
                 </li>
-                <li>This can be reversed from the post detail page</li>
+                <li>The duplicate will redirect to the kept post for voters</li>
+                <li>You can undo this anytime from the post detail page</li>
               </ul>
             </div>
           </AlertDialogDescription>
@@ -76,7 +76,7 @@ export function MergeConfirmDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} disabled={isPending}>
-            {isPending ? 'Merging...' : 'Merge'}
+            {isPending ? 'Consolidating...' : 'Consolidate'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
