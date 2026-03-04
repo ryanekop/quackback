@@ -52,10 +52,9 @@ import {
   type StatusId,
   type TagId,
   type RoadmapId,
-  type CommentId,
 } from '@quackback/ids'
 import type { PostDetails, CurrentUser } from '@/components/admin/feedback/inbox-types'
-import type { PublicCommentView } from '@/lib/client/queries/portal-detail'
+import { toPortalComments, getInitialContentJson } from '@/components/admin/feedback/detail/post-utils'
 
 interface PostModalProps {
   postId: string | undefined
@@ -67,44 +66,6 @@ interface PostModalContentProps {
   currentUser: CurrentUser
   onNavigateToPost: (postId: string) => void
   onClose: () => void
-}
-
-/** Convert admin comments to portal-compatible format */
-function toPortalComments(post: PostDetails): PublicCommentView[] {
-  const mapComment = (c: PostDetails['comments'][0]): PublicCommentView => ({
-    id: c.id as CommentId,
-    content: c.content,
-    authorName: c.authorName,
-    principalId: c.principalId,
-    createdAt: c.createdAt,
-    parentId: c.parentId as CommentId | null,
-    isTeamMember: c.isTeamMember,
-    avatarUrl: (c.principalId && post.avatarUrls?.[c.principalId]) || null,
-    statusChange: c.statusChange ?? null,
-    reactions: c.reactions,
-    replies: c.replies.map(mapComment),
-  })
-  return post.comments.map(mapComment)
-}
-
-/** Convert plain text to TipTap JSON format for posts without contentJson */
-function getInitialContentJson(post: {
-  contentJson?: unknown
-  content: string
-}): JSONContent | null {
-  if (post.contentJson) {
-    return post.contentJson as JSONContent
-  }
-  if (post.content) {
-    return {
-      type: 'doc',
-      content: post.content.split('\n').map((line) => ({
-        type: 'paragraph',
-        content: line ? [{ type: 'text', text: line }] : [],
-      })),
-    }
-  }
-  return null
 }
 
 function PostModalContent({

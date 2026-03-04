@@ -23,6 +23,7 @@ import { useUnmergePost } from '@/lib/client/mutations/post-merge'
 import { suggestionsKeys } from '@/lib/client/hooks/use-suggestions-query'
 import { acceptSuggestionFn, dismissSuggestionFn } from '@/lib/server/functions/feedback'
 import { MergeConfirmDialog } from './merge-confirm-dialog'
+import { MergePreviewModal } from './merge-preview-modal'
 import { computeMergePreview } from './merge-preview'
 import type { SuggestionListItem } from '../feedback-types'
 import type { PostId } from '@quackback/ids'
@@ -65,6 +66,7 @@ function DuplicateRow({
 }) {
   const [swapped, setSwapped] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showMergePreview, setShowMergePreview] = useState(false)
   const [mergedState, setMergedState] = useState<MergedState | null>(null)
 
   const queryClient = useQueryClient()
@@ -171,9 +173,12 @@ function DuplicateRow({
           <ArrowRightIcon className="h-4 w-4 text-muted-foreground/40" />
         </div>
 
-        {/* Right: merged preview card */}
+        {/* Right: merged preview card — click to open full preview modal */}
         {preview && (
-          <MergePreviewCard preview={preview} />
+          <MergePreviewCard
+            preview={preview}
+            onClick={() => setShowMergePreview(true)}
+          />
         )}
       </div>
 
@@ -206,6 +211,16 @@ function DuplicateRow({
           preview={preview}
           onConfirm={() => mergeMutation.mutate(swapped ? { swapDirection: true } : undefined)}
           isPending={isPending}
+        />
+      )}
+
+      {/* Full merge preview modal */}
+      {canonicalPost && duplicatePost && (
+        <MergePreviewModal
+          open={showMergePreview}
+          onOpenChange={setShowMergePreview}
+          canonicalPostId={canonicalPost.id as PostId}
+          duplicatePostId={duplicatePost.id as PostId}
         />
       )}
     </div>
@@ -288,11 +303,17 @@ function MergedDuplicateRow({
 
 function MergePreviewCard({
   preview,
+  onClick,
 }: {
   preview: ReturnType<typeof computeMergePreview>
+  onClick?: () => void
 }) {
   return (
-    <div className="min-w-0 rounded-md border border-dashed border-border/60 bg-muted/20 p-2.5">
+    <button
+      type="button"
+      onClick={onClick}
+      className="min-w-0 w-full rounded-md border border-dashed border-border/60 bg-muted/20 p-2.5 text-left cursor-pointer transition-colors hover:bg-muted/40 hover:border-border"
+    >
       <div className="mb-1.5">
         <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wide">
           Merged result
@@ -336,7 +357,7 @@ function MergePreviewCard({
           </div>
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 

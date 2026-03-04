@@ -25,12 +25,16 @@ import {
 import { type PostId, type PrincipalId, toUuid } from '@quackback/ids'
 import { getExecuteRows } from '@/lib/server/utils'
 import { NotFoundError, ValidationError, ConflictError } from '@/lib/shared/errors'
+import { getPostWithDetails, getCommentsWithReplies } from './post.query'
+import { hasUserVoted } from './post.public'
 import type {
   MergePostResult,
   UnmergePostResult,
   MergedPostSummary,
   PostMergeInfo,
+  PostWithDetails,
 } from './post.types'
+import type { CommentTreeNode } from '@/lib/shared'
 
 /**
  * Merge a duplicate post into a canonical post.
@@ -225,6 +229,76 @@ export async function getPostMergeInfo(postId: PostId): Promise<PostMergeInfo | 
     canonicalPostTitle: canonicalPost[0].title,
     canonicalPostBoardSlug: canonicalPost[0].boardSlug,
     mergedAt: post.mergedAt,
+  }
+}
+
+/**
+ * Result of a merge preview — simulates what the canonical post would look like after merging.
+ */
+export interface MergePreviewResult {
+  /** Canonical post with full details (vote count reflects deduplicated merge) */
+  post: PostWithDetails & {
+    hasVoted: boolean
+    comments: CommentTreeNode[]
+    mergedPosts?: undefined
+    mergeInfo?: undefined
+  }
+  /** Comments from the duplicate post (shown under a divider in the UI) */
+  duplicateComments: CommentTreeNode[]
+  /** Title of the duplicate post (used for the divider label) */
+  duplicatePostTitle: string
+}
+
+/**
+ * Preview what the merged post would look like without actually performing the merge.
+ *
+ * Loads full details for both posts, computes the deduplicated vote count
+ * (same logic as recalculateCanonicalVoteCount), and returns separate comment
+ * arrays so the UI can show them with a divider.
+ *
+ * @param canonicalPostId - The post that would remain after merge
+ * @param duplicatePostId - The post that would be absorbed
+ * @param viewerPrincipalId - The principal viewing the preview (for hasVoted check)
+ */
+export async function previewMergedPost(
+  canonicalPostId: PostId,
+  duplicatePostId: PostId,
+  viewerPrincipalId: PrincipalId
+): Promise<MergePreviewResult> {
+  // Load both posts' full details and comments in parallel
+  const [canonicalDetails, duplicateDetails, canonicalComments, duplicateComments, hasVoted] =
+    await Promise.all([
+      getPostWithDetails(canonicalPostId),
+      getPostWithDetails(duplicatePostId),
+      getCommentsWithReplies(canonicalPostId, viewerPrincipalId),
+      getCommentsWithReplies(duplicatePostId, viewerPrincipalId),
+      hasUserVoted(canonicalPostId, viewerPrincipalId),
+    ])
+
+  // Compute deduplicated vote count across both posts (same SQL as real merge)
+  const canonicalUuid = toUuid(canonicalPostId)
+  const duplicateUuid = toUuid(duplicatePostId)
+  const result = await db.execute<{ unique_voters: number }>(sql`
+    SELECT COUNT(DISTINCT v.principal_id)::int AS unique_voters
+    FROM ${votes} v
+    WHERE v.post_id IN (${canonicalUuid}::uuid, ${duplicateUuid}::uuid)
+  `)
+  const rows = getExecuteRows<{ unique_voters: number }>(result)
+  const mergedVoteCount = rows[0]?.unique_voters ?? 0
+
+  // Combine comment counts from both posts
+  const combinedCommentCount = canonicalDetails.commentCount + duplicateDetails.commentCount
+
+  return {
+    post: {
+      ...canonicalDetails,
+      voteCount: mergedVoteCount,
+      commentCount: combinedCommentCount,
+      hasVoted,
+      comments: canonicalComments,
+    },
+    duplicateComments,
+    duplicatePostTitle: duplicateDetails.title,
   }
 }
 
