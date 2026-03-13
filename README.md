@@ -63,15 +63,6 @@ Most feedback tools are expensive, closed-source, and lock you in. Quackback giv
 
 Slack, Linear, Jira, GitHub, GitLab, Asana, ClickUp, Monday, Trello, Notion, Shortcut, Azure DevOps, Intercom, Zendesk, Freshdesk, HubSpot, Salesforce, Stripe, Discord, Teams, Segment, Zapier, Make, and n8n.
 
-## Tech Stack
-
-- [TanStack Start](https://tanstack.com/start) + [TanStack Router](https://tanstack.com/router) · Full-stack React framework
-- [PostgreSQL](https://www.postgresql.org/) + [Drizzle ORM](https://orm.drizzle.team/) · Database and type-safe ORM
-- [BullMQ](https://docs.bullmq.io/) · Background job processing
-- [Better Auth](https://www.better-auth.com/) · Authentication
-- [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) · Styling
-- [Bun](https://bun.sh/) · Runtime and package manager
-
 ## Self-Hosted
 
 ### One-Click Deploy
@@ -90,6 +81,12 @@ docker run -p 3000:3000 --env-file .env quackback
 
 Requires PostgreSQL and a Redis-compatible store. Set `DATABASE_URL` and `REDIS_URL` in `.env`. Migrations run automatically on startup.
 
+## Contributing
+
+See the [Contributing Guide](CONTRIBUTING.md) to get started.
+
+- [GitHub Discussions](https://github.com/QuackbackIO/quackback/discussions) — ask questions, share ideas
+
 ### Local Development
 
 Prerequisites: [Bun](https://bun.sh/) v1.3.7+ and [Docker](https://docker.com/)
@@ -104,11 +101,14 @@ bun run dev      # http://localhost:3000
 
 Log in with `demo@example.com` / `password`.
 
-## Contributing
+### Tech Stack
 
-See the [Contributing Guide](CONTRIBUTING.md) to get started.
-
-- [GitHub Discussions](https://github.com/QuackbackIO/quackback/discussions) — ask questions, share ideas
+- [TanStack Start](https://tanstack.com/start) + [TanStack Router](https://tanstack.com/router) · Full-stack React framework
+- [PostgreSQL](https://www.postgresql.org/) + [Drizzle ORM](https://orm.drizzle.team/) · Database and type-safe ORM
+- [BullMQ](https://docs.bullmq.io/) · Background job processing
+- [Better Auth](https://www.better-auth.com/) · Authentication
+- [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) · Styling
+- [Bun](https://bun.sh/) · Runtime and package manager
 
 <a href="https://github.com/QuackbackIO/quackback/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=QuackbackIO/quackback" alt="Contributors" />
