@@ -209,6 +209,8 @@ export interface PublicComment {
   authorName: string | null
   principalId: string | null
   createdAt: Date
+  deletedAt: Date | null
+  isRemovedByTeam: boolean
   parentId: CommentId | null
   isTeamMember: boolean
   avatarUrl: string | null

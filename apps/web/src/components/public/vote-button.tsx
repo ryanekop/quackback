@@ -14,6 +14,8 @@ interface VoteButtonProps {
   onBeforeVote?: () => Promise<boolean>
   /** Compact horizontal variant for inline use */
   compact?: boolean
+  /** Pill variant — vertical, self-stretches to parent height */
+  pill?: boolean
   /** Static display with no interactivity */
   readonly?: boolean
 }
@@ -25,6 +27,7 @@ export function VoteButton({
   onAuthRequired,
   onBeforeVote,
   compact = false,
+  pill = false,
   readonly = false,
 }: VoteButtonProps): React.ReactElement {
   const { voteCount, hasVoted, isPending, handleVote } = usePostVote({
@@ -57,7 +60,11 @@ export function VoteButton({
   const sharedClassName = cn(
     'relative flex items-center justify-center',
     'border rounded-md',
-    compact ? 'flex-row gap-1 py-1.5 px-2.5 text-xs' : 'flex-col w-12 py-2 gap-0.5',
+    compact
+      ? 'flex-row gap-1 py-1.5 px-2.5 text-xs'
+      : pill
+        ? 'flex-col self-stretch px-3.5 py-1.5 gap-1'
+        : 'flex-col w-12 py-2 gap-0.5',
     'bg-muted/40 text-muted-foreground',
     !readonly && 'group transition-colors duration-200 cursor-pointer',
     !readonly &&
@@ -72,7 +79,7 @@ export function VoteButton({
   const chevron = (
     <ChevronUpIcon
       className={cn(
-        compact ? 'h-3.5 w-3.5' : 'h-4 w-4',
+        compact || pill ? 'h-3.5 w-3.5' : 'h-4 w-4',
         !readonly && 'transition-transform duration-200',
         !readonly && hasVoted && 'fill-post-card-voted',
         !readonly && !isPending && !disabled && 'group-hover:-translate-y-0.5'
@@ -85,7 +92,7 @@ export function VoteButton({
       data-testid="vote-count"
       className={cn(
         'font-semibold tabular-nums',
-        compact ? 'text-xs' : 'text-sm',
+        compact || pill ? 'text-xs' : 'text-sm',
         !readonly && hasVoted ? 'text-post-card-voted' : 'text-foreground'
       )}
     >

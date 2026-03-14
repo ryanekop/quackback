@@ -250,6 +250,11 @@ export const comments = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     // Soft delete support
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    // Who initiated the deletion (self-delete vs team-removed)
+    deletedByPrincipalId: typeIdColumnNullable('principal')('deleted_by_principal_id').references(
+      () => principal.id,
+      { onDelete: 'set null' }
+    ),
   },
   (table) => [
     index('comments_post_id_idx').on(table.postId),
@@ -447,6 +452,11 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     fields: [comments.statusChangeToId],
     references: [postStatuses.id],
     relationName: 'commentStatusChangeTo',
+  }),
+  deletedBy: one(principal, {
+    fields: [comments.deletedByPrincipalId],
+    references: [principal.id],
+    relationName: 'commentDeletedBy',
   }),
 }))
 

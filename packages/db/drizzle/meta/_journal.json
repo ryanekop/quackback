@@ -239,6 +239,13 @@
       "when": 1773304587850,
       "tag": "0033_jittery_archangel",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1773407236622,
+      "tag": "0034_petite_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }
