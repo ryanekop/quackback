@@ -2,43 +2,28 @@
  * Widget auth utilities for cross-origin iframe contexts.
  *
  * The widget iframe can't set cookies (SameSite=Lax blocks them in cross-origin iframes).
- * Instead, we store session tokens in localStorage and inject them as Bearer headers
- * into server function calls. The Better Auth bearer plugin on the server converts
+ * Instead, we store session tokens in-memory and inject them as Bearer headers into
+ * server function calls. identify() is called on every page load so cross-reload
+ * persistence is not needed. The Better Auth bearer plugin on the server converts
  * these headers back to session lookups transparently.
  */
 
-const WIDGET_TOKEN_KEY = '__quackback_token'
+let _widgetToken: string | null = null
 
-/** Store the widget session token in iframe-local localStorage */
 export function setWidgetToken(token: string): void {
-  try {
-    localStorage.setItem(WIDGET_TOKEN_KEY, token)
-  } catch {
-    // localStorage may be unavailable in some contexts
-  }
+  _widgetToken = token
 }
 
-/** Get the stored widget session token */
 export function getWidgetToken(): string | null {
-  try {
-    return localStorage.getItem(WIDGET_TOKEN_KEY)
-  } catch {
-    return null
-  }
+  return _widgetToken
 }
 
-/** Clear the widget session token */
 export function clearWidgetToken(): void {
-  try {
-    localStorage.removeItem(WIDGET_TOKEN_KEY)
-  } catch {
-    // localStorage may be unavailable in some contexts
-  }
+  _widgetToken = null
 }
 
-/** Check if a widget token exists */
 export function hasWidgetToken(): boolean {
-  return getWidgetToken() !== null
+  return _widgetToken !== null
 }
 
 /**

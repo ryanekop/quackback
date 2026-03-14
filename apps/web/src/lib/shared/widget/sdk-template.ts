@@ -45,6 +45,7 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
   var panel = null;
   var isOpen = false;
   var isReady = false;
+  var isIdentified = false;
   var pendingIdentify = null;
   var isMobile = window.innerWidth < 640;
 
@@ -243,7 +244,7 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
     if (!isOpen) return;
     isOpen = false;
 
-    if (trigger) {
+    if (trigger && isIdentified) {
       trigger.style.display = "flex";
       trigger.setAttribute("aria-expanded", "false");
     }
@@ -308,15 +309,23 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
       case "init":
         config = options || {};
         isMobile = window.innerWidth < 640;
-        createTrigger();
         break;
 
       case "identify":
         if (options === null || options === undefined) {
-          // Clear identity
+          // Clear identity — close panel and hide trigger
+          isIdentified = false;
+          hidePanel();
+          if (trigger) trigger.style.display = "none";
           if (isReady) sendToWidget("quackback:identify", null);
           else pendingIdentify = null;
         } else {
+          // Show trigger on first identify
+          if (!isIdentified) {
+            isIdentified = true;
+            if (!trigger) createTrigger();
+            else trigger.style.display = "flex";
+          }
           if (isReady) sendToWidget("quackback:identify", options);
           else pendingIdentify = options;
         }
@@ -342,6 +351,7 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
         config = null;
         isOpen = false;
         isReady = false;
+        isIdentified = false;
         break;
     }
   }

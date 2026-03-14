@@ -9,12 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import {
-  setWidgetToken,
-  getWidgetToken,
-  clearWidgetToken,
-  getWidgetAuthHeaders,
-} from '@/lib/client/widget-auth'
+import { setWidgetToken, clearWidgetToken } from '@/lib/client/widget-auth'
 import { authClient } from '@/lib/server/auth/client'
 
 interface WidgetUser {
@@ -44,64 +39,20 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<WidgetUser | null>(null)
   const isIdentified = user !== null
   const sessionReadyRef = useRef(false)
-  const tokenRef = useRef<string | null>(null)
 
-  // On mount, restore the current widget session from the widget origin.
-  useEffect(() => {
-    const token = getWidgetToken()
-    tokenRef.current = token
-    if (!token) return
-
-    sessionReadyRef.current = true
-
-    let active = true
-    void (async () => {
-      try {
-        const response = await fetch('/api/widget/session', {
-          headers: getWidgetAuthHeaders(),
-          cache: 'no-store',
-        })
-
-        if (!active || tokenRef.current !== token) return
-
-        if (response.status === 401 || response.status === 403) {
-          clearWidgetToken()
-          tokenRef.current = null
-          sessionReadyRef.current = false
-          setUser(null)
-          return
-        }
-
-        if (!response.ok) return
-
-        const result = (await response.json()) as { data?: { user?: WidgetUser | null } }
-        setUser(result.data?.user ?? null)
-      } catch {
-        // Keep the stored token and try again on the next widget load.
-      }
-    })()
-
-    return () => {
-      active = false
-    }
-  }, [])
-
-  /** Store the widget session token on the widget origin. */
   const storeToken = useCallback((token: string) => {
     setWidgetToken(token)
-    tokenRef.current = token
     sessionReadyRef.current = true
   }, [])
 
   /**
    * Ensure a session exists. For identified users, this is already done via identify().
-   * For anonymous users, creates an anonymous session lazily on first action.
-   * Returns true if a session is ready, false if creation failed.
+   * For anonymous users, the session is created eagerly during identify({ anonymous: true }).
+   * This is kept as a fallback but should return true immediately after identify.
    */
   const sessionPromiseRef = useRef<Promise<boolean> | null>(null)
   const ensureSession = useCallback(async (): Promise<boolean> => {
     if (sessionReadyRef.current) return true
-    // Prevent concurrent anonymous session creation
     if (sessionPromiseRef.current) return sessionPromiseRef.current
 
     const p = (async () => {
@@ -168,6 +119,37 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    async function handleAnonymousIdentify() {
+      try {
+        let token: string | null = null
+        const { error } = await authClient.signIn.anonymous({
+          fetchOptions: {
+            onSuccess: (ctx) => {
+              token = ctx.response.headers.get('set-auth-token')
+              if (token) storeToken(token)
+            },
+          },
+        })
+        if (error || !token) {
+          window.parent.postMessage(
+            { type: 'quackback:identify-result', success: false, error: 'ANON_SESSION_FAILED' },
+            '*'
+          )
+          return
+        }
+        window.parent.postMessage(
+          { type: 'quackback:identify-result', success: true, user: null },
+          '*'
+        )
+        window.parent.postMessage({ type: 'quackback:auth-change', user: null }, '*')
+      } catch {
+        window.parent.postMessage(
+          { type: 'quackback:identify-result', success: false, error: 'NETWORK_ERROR' },
+          '*'
+        )
+      }
+    }
+
     function handleMessage(event: MessageEvent) {
       if (event.source !== window.parent) return
 
@@ -177,14 +159,16 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
       if (msg.type === 'quackback:identify') {
         if (msg.data === null) {
           clearWidgetToken()
-          tokenRef.current = null
           sessionReadyRef.current = false
+          sessionPromiseRef.current = null
           setUser(null)
           window.parent.postMessage(
             { type: 'quackback:identify-result', success: true, user: null },
             '*'
           )
           window.parent.postMessage({ type: 'quackback:auth-change', user: null }, '*')
+        } else if (msg.data?.anonymous === true) {
+          handleAnonymousIdentify()
         } else if (msg.data && typeof msg.data === 'object') {
           handleIdentify(msg.data as Record<string, unknown>)
         }
