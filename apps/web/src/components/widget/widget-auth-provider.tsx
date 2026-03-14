@@ -40,19 +40,17 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
   const isIdentified = user !== null
   const sessionReadyRef = useRef(false)
 
-  // On mount, check if we already have a stored token (from previous session)
+  // On mount, check if we already have a stored token on the widget origin.
   useEffect(() => {
     if (getWidgetToken()) {
       sessionReadyRef.current = true
     }
   }, [])
 
-  /** Store token and notify parent SDK for cross-page persistence */
+  /** Store the widget session token on the widget origin. */
   const storeToken = useCallback((token: string) => {
     setWidgetToken(token)
     sessionReadyRef.current = true
-    // Tell parent SDK to persist the token in first-party localStorage
-    window.parent.postMessage({ type: 'quackback:token', token }, '*')
   }, [])
 
   /**
@@ -149,12 +147,6 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
         } else if (msg.data && typeof msg.data === 'object') {
           handleIdentify(msg.data as Record<string, unknown>)
         }
-      }
-
-      // Restore token from parent SDK (persisted in parent's first-party localStorage)
-      if (msg.type === 'quackback:restore-token' && typeof msg.token === 'string') {
-        setWidgetToken(msg.token)
-        sessionReadyRef.current = true
       }
     }
 

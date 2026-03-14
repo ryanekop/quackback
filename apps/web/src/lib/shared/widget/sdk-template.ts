@@ -47,18 +47,6 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
   var isReady = false;
   var pendingIdentify = null;
   var isMobile = window.innerWidth < 640;
-  var STORAGE_KEY = "__quackback_token";
-
-  // Token persistence — store on the parent page (first-party localStorage)
-  function storeToken(token) {
-    try { localStorage.setItem(STORAGE_KEY, token); } catch(e) {}
-  }
-  function loadToken() {
-    try { return localStorage.getItem(STORAGE_KEY); } catch(e) { return null; }
-  }
-  function clearToken() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
-  }
 
   // =========================================================================
   // DOM Helpers
@@ -290,11 +278,6 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
     switch (msg.type) {
       case "quackback:ready":
         isReady = true;
-        // Restore any previously stored token (first-party localStorage)
-        var storedToken = loadToken();
-        if (storedToken) {
-          iframe.contentWindow.postMessage({ type: "quackback:restore-token", token: storedToken }, BASE_URL);
-        }
         // Replay any pending identify
         if (pendingIdentify !== null) {
           sendToWidget("quackback:identify", pendingIdentify);
@@ -312,11 +295,6 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
 
       case "quackback:navigate":
         if (msg.url) window.open(msg.url, "_blank");
-        break;
-
-      case "quackback:token":
-        // Widget created/received a session token — persist in parent's first-party localStorage
-        if (msg.token) storeToken(msg.token);
         break;
     }
   });
