@@ -15,6 +15,7 @@ const createCommentSchema = z.object({
   content: z.string().min(1, 'Content is required').max(5000),
   parentId: z.string().optional().nullable(),
   isPrivate: z.boolean().optional(),
+  createdAt: z.string().datetime().optional(),
 })
 
 export const Route = createFileRoute('/api/v1/posts/$postId/comments')({
@@ -114,12 +115,19 @@ export const Route = createFileRoute('/api/v1/posts/$postId/comments')({
             return badRequestResponse('Principal not found')
           }
 
+          // Only admins can set createdAt (for imports)
+          const createdAt =
+            parsed.data.createdAt && authResult.role === 'admin'
+              ? new Date(parsed.data.createdAt)
+              : undefined
+
           const result = await createComment(
             {
               postId: postId as PostId,
               content: parsed.data.content,
               parentId: parsed.data.parentId as CommentId | undefined,
               isPrivate: parsed.data.isPrivate,
+              createdAt,
             },
             {
               principalId,
@@ -128,7 +136,8 @@ export const Route = createFileRoute('/api/v1/posts/$postId/comments')({
               name: principalRecord.user?.name,
               email: principalRecord.user?.email ?? undefined,
               role: principalRecord.role as 'admin' | 'member' | 'user',
-            }
+            },
+            { skipDispatch: authResult.importMode }
           )
 
           return createdResponse({

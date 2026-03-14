@@ -69,7 +69,8 @@ export async function createPost(
     name?: string
     email?: string
     displayName?: string
-  }
+  },
+  options?: { skipDispatch?: boolean }
 ): Promise<CreatePostResult> {
   console.log(`[domain:posts] createPost: boardId=${input.boardId}`)
   // Basic validation (also done at action layer, but enforced here for direct service calls)
@@ -132,6 +133,7 @@ export async function createPost(
       statusId,
       principalId: author.principalId,
       widgetMetadata: input.widgetMetadata ?? null,
+      ...(input.createdAt && { createdAt: input.createdAt }),
     })
     .returning()
 
@@ -142,28 +144,30 @@ export async function createPost(
     await db.insert(postTags).values(input.tagIds.map((tagId) => ({ postId: post.id, tagId })))
   }
 
-  // Auto-subscribe the author to their own post
-  await subscribeToPost(author.principalId, post.id, 'author')
+  if (!options?.skipDispatch) {
+    // Auto-subscribe the author to their own post
+    await subscribeToPost(author.principalId, post.id, 'author')
 
-  // Dispatch post.created event for webhooks, Slack, AI processing, etc.
-  const actorName = author.displayName ?? author.name
-  await dispatchPostCreated(buildEventActor(author), {
-    id: post.id,
-    title: post.title,
-    content: post.content,
-    boardId: post.boardId,
-    boardSlug: board.slug,
-    authorEmail: author.email,
-    authorName: actorName,
-    voteCount: post.voteCount,
-  })
+    // Dispatch post.created event for webhooks, Slack, AI processing, etc.
+    const actorName = author.displayName ?? author.name
+    await dispatchPostCreated(buildEventActor(author), {
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      boardId: post.boardId,
+      boardSlug: board.slug,
+      authorEmail: author.email,
+      authorName: actorName,
+      voteCount: post.voteCount,
+    })
 
-  createActivity({
-    postId: post.id,
-    principalId: author.principalId,
-    type: 'post.created',
-    metadata: { boardName: board.name },
-  })
+    createActivity({
+      postId: post.id,
+      principalId: author.principalId,
+      type: 'post.created',
+      metadata: { boardName: board.name },
+    })
+  }
 
   return { ...post, boardSlug: board.slug }
 }

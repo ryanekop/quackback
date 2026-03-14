@@ -12,6 +12,7 @@ import type { PostId, PrincipalId } from '@quackback/ids'
 
 const bodySchema = z.object({
   voterPrincipalId: z.string().min(1, 'Voter principal ID is required'),
+  createdAt: z.string().datetime().optional(),
 })
 
 export const Route = createFileRoute('/api/v1/posts/$postId/vote/proxy')({
@@ -44,6 +45,12 @@ export const Route = createFileRoute('/api/v1/posts/$postId/vote/proxy')({
           const voterError = validateTypeId(voterPrincipalId, 'principal', 'voter principal ID')
           if (voterError) return voterError
 
+          // Only admins can set createdAt (for imports)
+          const createdAt =
+            parsed.data.createdAt && authResult.role === 'admin'
+              ? new Date(parsed.data.createdAt)
+              : undefined
+
           const { addVoteOnBehalf } = await import('@/lib/server/domains/posts/post.voting')
           const { createActivity } = await import('@/lib/server/domains/activity/activity.service')
           const result = await addVoteOnBehalf(
@@ -51,10 +58,11 @@ export const Route = createFileRoute('/api/v1/posts/$postId/vote/proxy')({
             voterPrincipalId as PrincipalId,
             { type: 'proxy', externalUrl: '' },
             null,
-            addedByPrincipalId
+            addedByPrincipalId,
+            createdAt
           )
 
-          if (result.voted) {
+          if (result.voted && !authResult.importMode) {
             createActivity({
               postId: postId as PostId,
               principalId: addedByPrincipalId,

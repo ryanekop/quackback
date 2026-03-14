@@ -102,7 +102,8 @@ export async function createComment(
     email?: string
     displayName?: string
     role: 'admin' | 'member' | 'user'
-  }
+  },
+  options?: { skipDispatch?: boolean }
 ): Promise<CreateCommentResult> {
   console.log(
     `[domain:comments] createComment: postId=${input.postId}, parentId=${input.parentId ?? 'none'}`
@@ -203,6 +204,7 @@ export async function createComment(
           isPrivate,
           statusChangeFromId: prevStatus?.id ?? null,
           statusChangeToId: newStatus.id,
+          ...(input.createdAt && { createdAt: input.createdAt }),
         })
         .returning()
 
@@ -231,6 +233,7 @@ export async function createComment(
           principalId: author.principalId,
           isTeamMember: authorIsTeamMember,
           isPrivate,
+          ...(input.createdAt && { createdAt: input.createdAt }),
         })
         .returning()
 
@@ -248,43 +251,45 @@ export async function createComment(
     comment = result
   }
 
-  // Auto-subscribe commenter to the post
-  if (author.principalId) {
-    await subscribeToPost(author.principalId, input.postId, 'comment')
-  }
-
-  // Dispatch comment.created event for webhooks, Slack, etc.
-  const actorName = author.displayName ?? author.name
-  await dispatchCommentCreated(
-    buildEventActor(author),
-    {
-      id: comment.id,
-      content: comment.content,
-      authorName: actorName,
-      authorEmail: author.email,
-      isPrivate,
-    },
-    {
-      id: post.id,
-      title: post.title,
-      boardId: board.id,
-      boardSlug: board.slug,
+  if (!options?.skipDispatch) {
+    // Auto-subscribe commenter to the post
+    if (author.principalId) {
+      await subscribeToPost(author.principalId, input.postId, 'comment')
     }
-  )
 
-  // Dispatch status change event if status was changed
-  if (shouldChangeStatus && previousStatusName && newStatusName) {
-    await dispatchPostStatusChanged(
+    // Dispatch comment.created event for webhooks, Slack, etc.
+    const actorName = author.displayName ?? author.name
+    await dispatchCommentCreated(
       buildEventActor(author),
+      {
+        id: comment.id,
+        content: comment.content,
+        authorName: actorName,
+        authorEmail: author.email,
+        isPrivate,
+      },
       {
         id: post.id,
         title: post.title,
         boardId: board.id,
         boardSlug: board.slug,
-      },
-      previousStatusName,
-      newStatusName
+      }
     )
+
+    // Dispatch status change event if status was changed
+    if (shouldChangeStatus && previousStatusName && newStatusName) {
+      await dispatchPostStatusChanged(
+        buildEventActor(author),
+        {
+          id: post.id,
+          title: post.title,
+          boardId: board.id,
+          boardSlug: board.slug,
+        },
+        previousStatusName,
+        newStatusName
+      )
+    }
   }
 
   return { comment, post: { id: post.id, title: post.title, boardSlug: board.slug } }

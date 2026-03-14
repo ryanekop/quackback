@@ -17,6 +17,8 @@ export interface CreatePostInput {
   statusId?: StatusId
   tagIds?: TagId[]
   widgetMetadata?: Record<string, string>
+  /** Override creation timestamp (admin-only, for imports) */
+  createdAt?: Date
 }
 
 /**

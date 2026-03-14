@@ -10,12 +10,14 @@ import {
 import { listChangelogs, createChangelog } from '@/lib/server/domains/changelog'
 import { publishedAtToPublishState } from '@/lib/shared/schemas/changelog'
 import { db, principal, eq } from '@/lib/server/db'
+import type { PostId } from '@quackback/ids'
 
 // Input validation schema
 const createChangelogSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   content: z.string().min(1, 'Content is required'),
   publishedAt: z.string().datetime().optional(),
+  linkedPostIds: z.array(z.string()).optional(),
 })
 
 export const Route = createFileRoute('/api/v1/changelog/')({
@@ -103,6 +105,7 @@ export const Route = createFileRoute('/api/v1/changelog/')({
               title: parsed.data.title,
               content: parsed.data.content,
               publishState,
+              linkedPostIds: parsed.data.linkedPostIds as PostId[] | undefined,
             },
             {
               principalId: authResult.principalId,

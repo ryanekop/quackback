@@ -21,6 +21,8 @@ export interface ApiAuthContext {
   principalId: PrincipalId
   /** The role of the member who created the key */
   role: MemberRole
+  /** Whether the request is in import mode (suppresses side effects, raises rate limit) */
+  importMode: boolean
 }
 
 /**
@@ -70,6 +72,7 @@ export async function requireApiKey(request: Request): Promise<ApiAuthContext | 
     apiKey,
     principalId: apiKey.principalId,
     role,
+    importMode: false,
   }
 }
 
@@ -91,9 +94,10 @@ export async function withApiKeyAuth(
   request: Request,
   options: { role: AuthLevel }
 ): Promise<ApiAuthContext | Response> {
-  // Check rate limit before processing
+  // Check rate limit before processing (import mode gets higher limit)
   const clientIp = getClientIp(request)
-  const rateLimit = checkRateLimit(clientIp)
+  const wantsImportMode = request.headers.get('x-import-mode') === 'true'
+  const rateLimit = checkRateLimit(clientIp, wantsImportMode)
 
   if (!rateLimit.allowed) {
     return rateLimitedResponse(rateLimit.retryAfter ?? 60)
@@ -114,6 +118,11 @@ export async function withApiKeyAuth(
 
   if (options.role === 'team' && !isTeamMember(auth.role)) {
     return forbiddenResponse('Team member access required for this operation')
+  }
+
+  // Import mode requires admin role
+  if (wantsImportMode && isAdmin(auth.role)) {
+    auth.importMode = true
   }
 
   return auth

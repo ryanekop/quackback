@@ -9,7 +9,15 @@ import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { eq, sql } from 'drizzle-orm'
 import { generateId } from '@quackback/ids'
-import type { PostId, BoardId, StatusId, TagId, RoadmapId, CommentId } from '@quackback/ids'
+import type {
+  PostId,
+  BoardId,
+  StatusId,
+  TagId,
+  RoadmapId,
+  CommentId,
+  ChangelogId,
+} from '@quackback/ids'
 
 import {
   boards,
@@ -22,6 +30,8 @@ import {
   votes,
   comments,
   postNotes,
+  changelogEntries,
+  changelogEntryPosts,
 } from '@quackback/db/schema'
 import * as schema from '@quackback/db/schema'
 
@@ -31,6 +41,7 @@ import type {
   IntermediateComment,
   IntermediateVote,
   IntermediateNote,
+  IntermediateChangelog,
   ImportOptions,
   ImportResult,
   ImportError,
@@ -49,6 +60,8 @@ type AnyTable =
   | typeof tags
   | typeof postTags
   | typeof postRoadmaps
+  | typeof changelogEntries
+  | typeof changelogEntryPosts
 
 interface ResolvedReferences {
   board: { id: BoardId; slug: string } | null
@@ -90,6 +103,7 @@ export class Importer {
       comments: { imported: 0, skipped: 0, errors: 0 },
       votes: { imported: 0, skipped: 0, errors: 0 },
       notes: { imported: 0, skipped: 0, errors: 0 },
+      changelogs: { imported: 0, skipped: 0, errors: 0 },
       duration: 0,
       errors: [],
     }
@@ -141,6 +155,13 @@ export class Importer {
         this.progress.start(`Importing ${data.notes.length} notes`)
         result.notes = await this.importNotes(data.notes)
         this.progress.success(`Notes imported`)
+      }
+
+      // Step 5.5: Import changelog entries
+      if (data.changelogs && data.changelogs.length > 0) {
+        this.progress.start(`Importing ${data.changelogs.length} changelog entries`)
+        result.changelogs = await this.importChangelog(data.changelogs)
+        this.progress.success(`Changelog entries imported`)
       }
 
       // Step 6: Flush pending user creates
@@ -415,6 +436,17 @@ export class Importer {
       const post = postData[i]
 
       try {
+        // Resolve board first - skip post entirely if no board found
+        const boardId = this.resolveBoardId(post.board)
+        if (!boardId) {
+          stats.skipped++
+          if (this.options.verbose) {
+            this.progress.warn(`Skipping post: no board found for "${post.board || '(none)'}"`)
+          }
+          continue
+        }
+
+        // Assign ID only after confirming the post will be imported
         const postId = generateId('post')
         this.idMaps.posts.set(post.id, postId)
 
@@ -440,16 +472,6 @@ export class Importer {
         // Parse date
         const createdAt = post.createdAt ? new Date(post.createdAt) : new Date()
         const responseAt = post.responseAt ? new Date(post.responseAt) : null
-
-        // Resolve board - from post data or global option
-        const boardId = this.resolveBoardId(post.board)
-        if (!boardId) {
-          stats.skipped++
-          if (this.options.verbose) {
-            this.progress.warn(`Skipping post: no board found for "${post.board || '(none)'}"`)
-          }
-          continue
-        }
 
         postInserts.push({
           id: postId,
@@ -570,11 +592,45 @@ export class Importer {
       )
     }
 
+    // Set canonicalPostId for merged posts
+    let mergeCount = 0
+    for (const post of postData) {
+      if (!post.mergedIntoId) continue
+      const mergedPostId = this.idMaps.posts.get(post.id)
+      const canonicalPostId = this.idMaps.posts.get(post.mergedIntoId)
+      if (mergedPostId && canonicalPostId) {
+        if (!this.options.dryRun) {
+          await this.db
+            .update(posts)
+            .set({ canonicalPostId, mergedAt: new Date() })
+            .where(eq(posts.id, mergedPostId))
+        }
+        mergeCount++
+      } else if (mergedPostId && !canonicalPostId) {
+        if (this.options.verbose) {
+          this.progress.warn(
+            `Merged post ${post.id}: canonical post ${post.mergedIntoId} not imported, skipping merge link`
+          )
+        }
+      }
+    }
+    if (mergeCount > 0) {
+      if (this.options.dryRun) {
+        this.progress.info(`[DRY RUN] Would set ${mergeCount} merged post relationships`)
+      } else {
+        this.progress.step(`Set ${mergeCount} merged post relationships`)
+      }
+    }
+
     return stats
   }
 
   /**
    * Import comments
+   *
+   * Uses a two-pass approach for threading:
+   * Pass 1: Generate internal IDs for all comments and build a mapping
+   * Pass 2: Resolve parentId references using the mapping and build inserts
    */
   private async importComments(
     commentData: IntermediateComment[]
@@ -582,6 +638,17 @@ export class Importer {
     const stats = { imported: 0, skipped: 0, errors: 0 }
     const commentInserts: (typeof comments.$inferInsert)[] = []
 
+    // Pass 1: Pre-assign internal IDs for all comments that have external IDs
+    for (const comment of commentData) {
+      if (comment.id) {
+        const postId = this.idMaps.posts.get(comment.postId)
+        if (postId) {
+          this.idMaps.comments.set(comment.id, generateId('comment'))
+        }
+      }
+    }
+
+    // Pass 2: Build insert rows with resolved parentId
     for (let i = 0; i < commentData.length; i++) {
       const comment = commentData[i]
 
@@ -599,14 +666,26 @@ export class Importer {
           ? await this.userResolver.resolve(comment.authorEmail, comment.authorName)
           : null
 
+        // Use pre-assigned ID if available, otherwise generate
+        const commentId = comment.id
+          ? (this.idMaps.comments.get(comment.id) ?? generateId('comment'))
+          : generateId('comment')
+
+        // Resolve threaded parent comment
+        const parentId = comment.parentId
+          ? (this.idMaps.comments.get(comment.parentId) ?? undefined)
+          : undefined
+
         commentInserts.push({
-          id: generateId('comment'),
+          id: commentId,
           postId,
+          parentId,
           principalId,
           authorName: comment.authorName,
           authorEmail: comment.authorEmail,
           content: comment.body,
           isTeamMember: comment.isStaff ?? false,
+          isPrivate: comment.isPrivate ?? false,
           createdAt: comment.createdAt ? new Date(comment.createdAt) : new Date(),
         })
 
@@ -662,7 +741,6 @@ export class Importer {
 
         voteInserts.push({
           postId,
-          userIdentifier: `email:${vote.voterEmail.toLowerCase()}`,
           principalId,
           createdAt: vote.createdAt ? new Date(vote.createdAt) : new Date(),
           updatedAt: new Date(),
@@ -743,6 +821,74 @@ export class Importer {
     }
 
     await this.batchInsert(postNotes, noteInserts, 'Notes')
+    return stats
+  }
+
+  /**
+   * Import changelog entries
+   */
+  private async importChangelog(
+    changelogData: IntermediateChangelog[]
+  ): Promise<{ imported: number; skipped: number; errors: number }> {
+    const stats = { imported: 0, skipped: 0, errors: 0 }
+    const entryInserts: (typeof changelogEntries.$inferInsert)[] = []
+    const junctionInserts: (typeof changelogEntryPosts.$inferInsert)[] = []
+
+    for (let i = 0; i < changelogData.length; i++) {
+      const entry = changelogData[i]
+
+      try {
+        const principalId = entry.authorEmail
+          ? await this.userResolver.resolve(entry.authorEmail, entry.authorName)
+          : null
+
+        const changelogId = generateId('changelog') as ChangelogId
+
+        entryInserts.push({
+          id: changelogId,
+          title: entry.title,
+          content: entry.body,
+          principalId,
+          publishedAt: entry.publishedAt ? new Date(entry.publishedAt) : null,
+          createdAt: entry.createdAt ? new Date(entry.createdAt) : new Date(),
+          updatedAt: new Date(),
+        })
+
+        // Link to posts
+        for (const externalPostId of entry.linkedPostIds) {
+          const postId = this.idMaps.posts.get(externalPostId)
+          if (postId) {
+            junctionInserts.push({ changelogEntryId: changelogId, postId })
+          } else if (this.options.verbose) {
+            this.progress.warn(
+              `Changelog "${entry.title}": linked post not found (${externalPostId})`
+            )
+          }
+        }
+
+        stats.imported++
+      } catch (error) {
+        stats.errors++
+        this.errors.push({
+          type: 'changelog',
+          externalId: entry.id,
+          message: error instanceof Error ? error.message : String(error),
+          row: i + 2,
+        })
+      }
+    }
+
+    if (this.options.dryRun) {
+      this.progress.info(`[DRY RUN] Would insert ${entryInserts.length} changelog entries`)
+      this.progress.info(`[DRY RUN] Would insert ${junctionInserts.length} changelog-post links`)
+      return stats
+    }
+
+    await this.batchInsert(changelogEntries, entryInserts, 'Changelog-Entries')
+    if (junctionInserts.length > 0) {
+      await this.batchInsert(changelogEntryPosts, junctionInserts, 'Changelog-Post-Links', 'ignore')
+    }
+
     return stats
   }
 
