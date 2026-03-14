@@ -83,7 +83,7 @@ export function WidgetPostDetail({
       })
       queryClient.invalidateQueries({ queryKey: ['portal', 'post', postId] })
     },
-    [isIdentified, ensureSession, postId, queryClient]
+    [isIdentified, ensureSession, emitEvent, postId, queryClient]
   )
 
   const handleSubmitRootComment = useCallback(async () => {
@@ -115,13 +115,12 @@ export function WidgetPostDetail({
   const canVote = isIdentified || anonymousVotingEnabled
   const canComment = isIdentified || anonymousCommentingEnabled
 
-  // Scroll to top when post data loads or postId changes
+  // Scroll to top when navigating between posts
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!post) return
     const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]')
     if (viewport) viewport.scrollTop = 0
-  }, [post, postId])
+  }, [postId])
 
   const liveCommentCount = post?.comments ? countLiveComments(post.comments) : 0
 

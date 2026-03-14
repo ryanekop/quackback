@@ -25,9 +25,6 @@ export interface WidgetEventMap {
     commentId: string
     parentId: string | null
   }
-  'auth-required': {
-    action: 'vote' | 'comment' | 'post'
-  }
   identify: {
     success: boolean
     user: { id: string; name: string; email: string } | null

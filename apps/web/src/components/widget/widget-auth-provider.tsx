@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -200,18 +201,10 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('message', handleMessage)
   }, [storeToken])
 
-  return (
-    <WidgetAuthContext.Provider
-      value={{
-        user,
-        isIdentified,
-        ensureSession,
-        closeWidget,
-        emitEvent,
-        metadata: widgetMetadata,
-      }}
-    >
-      {children}
-    </WidgetAuthContext.Provider>
+  const contextValue = useMemo(
+    () => ({ user, isIdentified, ensureSession, closeWidget, emitEvent, metadata: widgetMetadata }),
+    [user, isIdentified, ensureSession, closeWidget, emitEvent, widgetMetadata]
   )
+
+  return <WidgetAuthContext.Provider value={contextValue}>{children}</WidgetAuthContext.Provider>
 }

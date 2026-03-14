@@ -66,16 +66,14 @@ export function WidgetNewPostForm({
       ? `${window.location.origin}/b/${boardSlug}`
       : window.location.origin
 
-    function handleOpenPortal() {
-      window.parent.postMessage({ type: 'quackback:navigate', url: portalUrl }, '*')
-    }
-
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
         <p className="text-sm font-medium text-foreground">Want to share an idea?</p>
         <button
           type="button"
-          onClick={handleOpenPortal}
+          onClick={() =>
+            window.parent.postMessage({ type: 'quackback:navigate', url: portalUrl }, '*')
+          }
           className="text-xs text-primary hover:text-primary/80 transition-colors mt-1"
         >
           Log in to submit your feedback

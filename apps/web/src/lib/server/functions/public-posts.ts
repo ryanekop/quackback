@@ -350,18 +350,21 @@ export const createPublicPostFn = createServerFn({ method: 'POST' })
         throw new Error('Board not found')
       }
 
+      if (!settings) {
+        throw new Error('Organization settings not found')
+      }
+
       // Block anonymous users unless anonymousPosting is enabled
       if (ctx.principal.type === 'anonymous') {
-        const { getPortalConfig } = await import('@/lib/server/domains/settings/settings.service')
-        const config = await getPortalConfig()
-        if (!config.features.anonymousPosting) {
+        const parsed =
+          typeof settings.portalConfig === 'string'
+            ? JSON.parse(settings.portalConfig)
+            : settings.portalConfig
+        if (!parsed?.features?.anonymousPosting) {
           throw new Error('Anonymous posting is not enabled')
         }
       } else if (!principalRecord) {
         throw new Error('You must be a member to submit feedback.')
-      }
-      if (!settings) {
-        throw new Error('Organization settings not found')
       }
 
       // Build author info (use ctx.principal for anonymous users who don't have a member record)

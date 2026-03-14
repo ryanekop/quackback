@@ -423,6 +423,7 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
         backdrop = null;
         config = null;
         metadata = null;
+        listeners = {};
         isOpen = false;
         isReady = false;
         isIdentified = false;
