@@ -328,6 +328,7 @@ export const oauthClient = pgTable('oauth_client', {
   responseTypes: text('response_types').array(),
   public: boolean('public'),
   type: text('type'),
+  requirePKCE: boolean('require_pkce'),
   referenceId: text('reference_id'),
   metadata: jsonb('metadata'),
 })
@@ -349,6 +350,7 @@ export const oauthRefreshToken = pgTable('oauth_refresh_token', {
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }),
   revoked: timestamp('revoked', { withTimezone: true }),
+  authTime: timestamp('auth_time', { withTimezone: true }),
   scopes: text('scopes').array().notNull(),
 })
 

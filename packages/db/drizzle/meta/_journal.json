@@ -253,6 +253,13 @@
       "when": 1773488401446,
       "tag": "0035_cute_bucky",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1773526215917,
+      "tag": "0036_glossy_revanche",
+      "breakpoints": true
     }
   ]
 }
