@@ -230,6 +230,10 @@ const addCommentSchema = {
   postId: z.string().describe('Post TypeID to comment on'),
   content: z.string().max(5000).describe('Comment text (max 5,000 characters)'),
   parentId: z.string().optional().describe('Parent comment TypeID for threaded reply'),
+  isPrivate: z
+    .boolean()
+    .optional()
+    .describe('If true, comment is an internal note visible only to team members'),
 }
 
 const createPostSchema = {
@@ -403,6 +407,7 @@ type AddCommentArgs = {
   postId: string
   content: string
   parentId?: string
+  isPrivate?: boolean
 }
 
 type CreatePostArgs = {
@@ -716,11 +721,12 @@ Examples:
   // add_comment
   server.tool(
     'add_comment',
-    `Post a comment on a feedback post. Supports threaded replies via parentId.
+    `Post a comment on a feedback post. Supports threaded replies via parentId. Set isPrivate to create an internal note visible only to team members.
 
 Examples:
 - Top-level comment: add_comment({ postId: "post_01abc...", content: "Thanks for the feedback!" })
-- Threaded reply: add_comment({ postId: "post_01abc...", content: "Good point.", parentId: "comment_01xyz..." })`,
+- Threaded reply: add_comment({ postId: "post_01abc...", content: "Good point.", parentId: "comment_01xyz..." })
+- Internal note: add_comment({ postId: "post_01abc...", content: "Discussed in standup, prioritizing for Q3.", isPrivate: true })`,
     addCommentSchema,
     WRITE,
     async (args: AddCommentArgs): Promise<CallToolResult> => {
@@ -732,6 +738,7 @@ Examples:
             postId: args.postId as PostId,
             content: args.content,
             parentId: args.parentId as CommentId | undefined,
+            isPrivate: args.isPrivate,
           },
           {
             principalId: auth.principalId,
@@ -748,6 +755,7 @@ Examples:
           postId: result.comment.postId,
           content: result.comment.content,
           parentId: result.comment.parentId,
+          isPrivate: result.comment.isPrivate,
           isTeamMember: result.comment.isTeamMember,
           createdAt: result.comment.createdAt,
         })

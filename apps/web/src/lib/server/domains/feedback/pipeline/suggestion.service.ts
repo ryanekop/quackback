@@ -10,6 +10,7 @@ import type { SQL } from 'drizzle-orm'
 import { subscribeToPost } from '@/lib/server/domains/subscriptions/subscription.service'
 import { createActivity } from '@/lib/server/domains/activity/activity.service'
 import { addVoteOnBehalf } from '@/lib/server/domains/posts/post.voting'
+import { NotFoundError, ValidationError } from '@/lib/shared/errors'
 import { logPipelineEvent } from './pipeline-log'
 import { sendFeedbackAttributionEmail } from './feedback-attribution-email'
 import type {
@@ -121,7 +122,10 @@ export async function acceptCreateSuggestion(
     suggestion.status !== 'pending' ||
     (suggestion.suggestionType !== 'create_post' && suggestion.suggestionType !== 'vote_on_post')
   ) {
-    throw new Error('Invalid suggestion for create accept')
+    throw new NotFoundError(
+      'SUGGESTION_NOT_FOUND',
+      'Suggestion not found or not eligible for create accept'
+    )
   }
 
   const title = edits?.title ?? suggestion.suggestedTitle ?? 'Untitled'
@@ -129,7 +133,7 @@ export async function acceptCreateSuggestion(
   const boardId = (edits?.boardId ?? suggestion.boardId) as BoardId | null
 
   if (!boardId) {
-    throw new Error('Board is required to create a post')
+    throw new ValidationError('VALIDATION_ERROR', 'Board is required to create a post')
   }
 
   // Get the default status for new posts
@@ -248,17 +252,23 @@ export async function acceptVoteSuggestion(
     suggestion.status !== 'pending' ||
     suggestion.suggestionType !== 'vote_on_post'
   ) {
-    throw new Error('Invalid suggestion for vote accept')
+    throw new NotFoundError(
+      'SUGGESTION_NOT_FOUND',
+      'Suggestion not found or not eligible for vote accept'
+    )
   }
 
   const targetPostId = suggestion.resultPostId as PostId
   if (!targetPostId) {
-    throw new Error('No target post for vote suggestion')
+    throw new ValidationError('VALIDATION_ERROR', 'No target post for vote suggestion')
   }
 
   const voterPrincipalId = suggestion.rawItem?.principalId as PrincipalId | undefined
   if (!voterPrincipalId) {
-    throw new Error('Cannot cast proxy vote: feedback author has no linked account')
+    throw new ValidationError(
+      'VALIDATION_ERROR',
+      'Cannot cast proxy vote: feedback author has no linked account'
+    )
   }
 
   const sourceType = suggestion.rawItem?.sourceType ?? 'feedback'

@@ -29,7 +29,6 @@ import {
   postRoadmaps,
   votes,
   comments,
-  postNotes,
   changelogEntries,
   changelogEntryPosts,
 } from '@quackback/db/schema'
@@ -56,7 +55,6 @@ type AnyTable =
   | typeof posts
   | typeof comments
   | typeof votes
-  | typeof postNotes
   | typeof tags
   | typeof postTags
   | typeof postRoadmaps
@@ -768,13 +766,13 @@ export class Importer {
   }
 
   /**
-   * Import internal notes
+   * Import internal notes as private comments
    */
   private async importNotes(
     noteData: IntermediateNote[]
   ): Promise<{ imported: number; skipped: number; errors: number }> {
     const stats = { imported: 0, skipped: 0, errors: 0 }
-    const noteInserts: (typeof postNotes.$inferInsert)[] = []
+    const commentInserts: (typeof comments.$inferInsert)[] = []
 
     for (let i = 0; i < noteData.length; i++) {
       const note = noteData[i]
@@ -793,13 +791,13 @@ export class Importer {
           ? await this.userResolver.resolve(note.authorEmail, note.authorName)
           : null
 
-        noteInserts.push({
-          id: generateId('note'),
+        commentInserts.push({
+          id: generateId('comment'),
           postId,
           principalId,
-          authorName: note.authorName,
-          authorEmail: note.authorEmail,
           content: note.body,
+          isPrivate: true,
+          isTeamMember: true,
           createdAt: note.createdAt ? new Date(note.createdAt) : new Date(),
         })
 
@@ -816,11 +814,13 @@ export class Importer {
     }
 
     if (this.options.dryRun) {
-      this.progress.info(`[DRY RUN] Would insert ${noteInserts.length} notes`)
+      this.progress.info(
+        `[DRY RUN] Would insert ${commentInserts.length} notes as private comments`
+      )
       return stats
     }
 
-    await this.batchInsert(postNotes, noteInserts, 'Notes')
+    await this.batchInsert(comments, commentInserts, 'Notes (private comments)')
     return stats
   }
 

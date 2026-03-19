@@ -156,6 +156,7 @@ vi.mock('@/lib/server/domains/comments/comment.service', () => ({
       parentId: null,
       principalId: 'principal_test',
       isTeamMember: true,
+      isPrivate: false,
       createdAt: new Date('2026-01-01'),
     },
     post: { id: 'post_test', title: 'Test Post', boardSlug: 'bugs' },
@@ -915,6 +916,54 @@ describe('MCP HTTP Handler', () => {
       const text = JSON.parse(body.result.content[0].text)
       expect(text.id).toBe('comment_new')
       expect(text.content).toBe('Great feedback!')
+      expect(text.isPrivate).toBe(false)
+    })
+
+    it('should handle tools/call for add_comment with isPrivate', async () => {
+      const { createComment } = await import('@/lib/server/domains/comments/comment.service')
+      const mockCreateComment = createComment as ReturnType<typeof vi.fn>
+      mockCreateComment.mockResolvedValueOnce({
+        comment: {
+          id: 'comment_private',
+          postId: 'post_test',
+          content: 'Internal discussion note',
+          parentId: null,
+          principalId: 'principal_test',
+          isTeamMember: true,
+          isPrivate: true,
+          createdAt: new Date('2026-01-01'),
+        },
+        post: { id: 'post_test', title: 'Test Post', boardSlug: 'bugs' },
+      })
+
+      const handleMcpRequest = await initializeSession()
+
+      const response = await handleMcpRequest(
+        mcpRequest(
+          jsonRpcRequest('tools/call', {
+            name: 'add_comment',
+            arguments: {
+              postId: 'post_test',
+              content: 'Internal discussion note',
+              isPrivate: true,
+            },
+          })
+        )
+      )
+
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as {
+        result: { content: Array<{ text: string }> }
+      }
+      const text = JSON.parse(body.result.content[0].text)
+      expect(text.id).toBe('comment_private')
+      expect(text.isPrivate).toBe(true)
+
+      // Verify isPrivate was passed through to the service
+      expect(mockCreateComment).toHaveBeenCalledWith(
+        expect.objectContaining({ isPrivate: true }),
+        expect.any(Object)
+      )
     })
 
     // ── update_comment tool ─────────────────────────────────────────────

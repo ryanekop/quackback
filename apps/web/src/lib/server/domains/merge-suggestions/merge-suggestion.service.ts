@@ -19,6 +19,7 @@ import {
   count,
 } from '@/lib/server/db'
 import { mergePost } from '@/lib/server/domains/posts/post.merge'
+import { NotFoundError } from '@/lib/shared/errors'
 import type { PostId, PrincipalId, MergeSuggestionId } from '@quackback/ids'
 
 export interface MergeSuggestionPostView {
@@ -102,7 +103,10 @@ export async function acceptMergeSuggestion(
   })
 
   if (!suggestion || suggestion.status !== 'pending') {
-    throw new Error('Merge suggestion not found or already resolved')
+    throw new NotFoundError(
+      'SUGGESTION_NOT_FOUND',
+      'Merge suggestion not found or already resolved'
+    )
   }
 
   // Perform the actual merge (swap source/target if user toggled direction)
