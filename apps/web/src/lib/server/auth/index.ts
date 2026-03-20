@@ -340,6 +340,8 @@ async function createAuth() {
           return {
             principalId: p?.id,
             role: p?.role ?? 'user',
+            name: user.name,
+            email: user.email,
           }
         },
       }),
