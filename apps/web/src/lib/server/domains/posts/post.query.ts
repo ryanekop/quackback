@@ -46,8 +46,30 @@ import type {
  * @returns Result containing the post with details or an error
  */
 export async function getPostWithDetails(postId: PostId): Promise<PostWithDetails> {
-  // Get the post with author relation
+  // Get the post with author relation (exclude internal/heavy fields)
   const post = await db.query.posts.findFirst({
+    columns: {
+      id: true,
+      boardId: true,
+      title: true,
+      content: true,
+      contentJson: true,
+      principalId: true,
+      statusId: true,
+      ownerPrincipalId: true,
+      voteCount: true,
+      commentCount: true,
+      pinnedCommentId: true,
+      createdAt: true,
+      updatedAt: true,
+      deletedAt: true,
+      isCommentsLocked: true,
+      moderationState: true,
+      canonicalPostId: true,
+      mergedAt: true,
+      summaryJson: true,
+      summaryUpdatedAt: true,
+    },
     where: eq(posts.id, postId),
     with: {
       author: {
@@ -123,7 +145,9 @@ export async function getPostWithDetails(postId: PostId): Promise<PostWithDetail
     }
   }
 
-  const postWithDetails: PostWithDetails = {
+  // Cast needed: columns selection omits heavy internal fields (embedding, searchVector,
+  // etc.) that no caller reads, but PostWithDetails extends the full Post type.
+  const postWithDetails = {
     ...post,
     board: {
       id: board.id,
@@ -139,7 +163,7 @@ export async function getPostWithDetails(postId: PostId): Promise<PostWithDetail
     pinnedComment,
     authorName: post.author?.displayName ?? null,
     authorEmail: post.author?.user?.email ?? null,
-  }
+  } as unknown as PostWithDetails
 
   return postWithDetails
 }
@@ -461,6 +485,20 @@ export async function listPostsForExport(boardId: BoardId | undefined): Promise<
   // Get posts with board and tags (limit to prevent memory exhaustion)
   const MAX_EXPORT_POSTS = 10000
   const rawPosts = await db.query.posts.findMany({
+    columns: {
+      id: true,
+      boardId: true,
+      title: true,
+      content: true,
+      principalId: true,
+      statusId: true,
+      voteCount: true,
+      commentCount: true,
+      createdAt: true,
+      updatedAt: true,
+      deletedAt: true,
+      canonicalPostId: true,
+    },
     where: and(inArray(posts.boardId, allBoardIds), isNull(posts.deletedAt)),
     orderBy: desc(posts.createdAt),
     limit: MAX_EXPORT_POSTS,
