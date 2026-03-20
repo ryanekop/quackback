@@ -10,6 +10,7 @@ import { WidgetNewPostForm } from '@/components/widget/widget-new-post-form'
 import { WidgetPostDetail } from '@/components/widget/widget-post-detail'
 import { useWidgetAuth } from '@/components/widget/widget-auth-provider'
 import { portalQueries } from '@/lib/client/queries/portal'
+import { widgetQueryKeys, INITIAL_SESSION_VERSION } from '@/lib/client/hooks/use-widget-vote'
 import { generateOneTimeToken } from '@/lib/client/widget-auth'
 
 const searchSchema = z.object({
@@ -19,14 +20,23 @@ const searchSchema = z.object({
 export const Route = createFileRoute('/widget/')({
   validateSearch: searchSchema,
   loader: async ({ context, location }) => {
-    const { queryClient, settings } = context
+    const { queryClient, settings, session } = context
     const search = location.search as z.infer<typeof searchSchema>
 
+    // Pass userId when session cookie is available (e.g. Chrome iframes,
+    // direct navigation) so votedPostIds are included in SSR data.
     const portalData = await queryClient.ensureQueryData(
       portalQueries.portalData({
         boardSlug: search.board,
         sort: 'top',
+        userId: session?.user?.id,
       })
+    )
+
+    // Seed the widget votedPosts cache for SSR vote highlights.
+    queryClient.setQueryData(
+      widgetQueryKeys.votedPosts.bySession(INITIAL_SESSION_VERSION),
+      new Set(portalData.votedPostIds)
     )
 
     return {

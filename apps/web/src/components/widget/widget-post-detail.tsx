@@ -7,9 +7,11 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { TimeAgo } from '@/components/ui/time-ago'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { PostContent } from '@/components/public/post-content'
-import { portalDetailQueries } from '@/lib/client/queries/portal-detail'
+import { fetchPublicPostDetail } from '@/lib/server/functions/portal'
 import { createCommentFn } from '@/lib/server/functions/comments'
 import { getWidgetAuthHeaders, generateOneTimeToken } from '@/lib/client/widget-auth'
+import { widgetQueryKeys } from '@/lib/client/hooks/use-widget-vote'
+import type { PublicPostDetailView } from '@/lib/client/queries/portal-detail'
 import { WidgetVoteButton } from './widget-vote-button'
 import { WidgetCommentList } from './widget-comment-list'
 import { useWidgetAuth } from './widget-auth-provider'
@@ -34,7 +36,7 @@ export function WidgetPostDetail({
   anonymousVotingEnabled = true,
   anonymousCommentingEnabled = false,
 }: WidgetPostDetailProps) {
-  const { isIdentified, user, ensureSession, emitEvent } = useWidgetAuth()
+  const { isIdentified, user, ensureSession, emitEvent, sessionVersion } = useWidgetAuth()
   const queryClient = useQueryClient()
 
   // Comment state (root-level comment form only; replies are inline in the comment list)
@@ -42,11 +44,25 @@ export function WidgetPostDetail({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
 
+  // Widget-specific post detail query that injects Bearer headers so the server
+  // can resolve principalId for reaction hasReacted highlights.
+  // Re-keyed on sessionVersion so it refetches after identify.
   const {
     data: post,
     isLoading,
     error,
-  } = useQuery(portalDetailQueries.postDetail(postId as PostId))
+  } = useQuery({
+    queryKey: widgetQueryKeys.postDetail.byId(postId, sessionVersion),
+    queryFn: async (): Promise<PublicPostDetailView> => {
+      const result = await fetchPublicPostDetail({
+        data: { postId },
+        headers: getWidgetAuthHeaders(),
+      })
+      if (!result) throw new Error('Post not found')
+      return result as PublicPostDetailView
+    },
+    staleTime: 30 * 1000,
+  })
 
   const status = post?.statusId ? (statuses.find((s) => s.id === post.statusId) ?? null) : null
 
@@ -81,7 +97,7 @@ export function WidgetPostDetail({
         commentId: result.comment.id,
         parentId: parentId ?? null,
       })
-      queryClient.invalidateQueries({ queryKey: ['portal', 'post', postId] })
+      queryClient.invalidateQueries({ queryKey: widgetQueryKeys.postDetail.all })
     },
     [isIdentified, ensureSession, emitEvent, postId, queryClient]
   )
@@ -115,12 +131,19 @@ export function WidgetPostDetail({
   const canVote = isIdentified || anonymousVotingEnabled
   const canComment = isIdentified || anonymousCommentingEnabled
 
-  // Scroll to top when navigating between posts
+  // Scroll to top when navigating to a new post.
+  // We track the last scrolled postId so we scroll exactly once per navigation,
+  // even if the ScrollArea isn't mounted yet during the loading state.
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const scrolledForRef = useRef<string | null>(null)
   useEffect(() => {
+    if (scrolledForRef.current === postId) return
     const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]')
-    if (viewport) viewport.scrollTop = 0
-  }, [postId])
+    if (viewport) {
+      viewport.scrollTop = 0
+      scrolledForRef.current = postId
+    }
+  })
 
   const liveCommentCount = post?.comments ? countLiveComments(post.comments) : 0
 

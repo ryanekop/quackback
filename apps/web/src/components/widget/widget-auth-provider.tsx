@@ -10,7 +10,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { setWidgetToken, clearWidgetToken } from '@/lib/client/widget-auth'
+import { widgetQueryKeys } from '@/lib/client/hooks/use-widget-vote'
 import { authClient } from '@/lib/server/auth/client'
 import type { WidgetMetadata, WidgetEventName, WidgetEventMap } from '@/lib/shared/widget/types'
 
@@ -31,6 +33,8 @@ interface WidgetAuthContextValue {
   emitEvent: <T extends WidgetEventName>(name: T, payload: WidgetEventMap[T]) => void
   /** Session metadata set by the host app */
   metadata: WidgetMetadata | null
+  /** Increments when the session token changes — use in query keys to trigger refetch */
+  sessionVersion: number
 }
 
 const WidgetAuthContext = createContext<WidgetAuthContextValue | null>(null)
@@ -42,13 +46,18 @@ export function useWidgetAuth(): WidgetAuthContextValue {
 }
 
 export function WidgetAuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<WidgetUser | null>(null)
+  const [sessionVersion, setSessionVersion] = useState(0)
   const isIdentified = user !== null
   const sessionReadyRef = useRef(false)
 
+  const sessionVersionRef = useRef(0)
   const storeToken = useCallback((token: string) => {
     setWidgetToken(token)
     sessionReadyRef.current = true
+    sessionVersionRef.current += 1
+    setSessionVersion(sessionVersionRef.current)
   }, [])
 
   /**
@@ -121,6 +130,14 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
         storeToken(result.sessionToken)
         setUser(result.user)
 
+        // Seed voted posts cache immediately — no second round-trip needed
+        if (result.votedPostIds) {
+          queryClient.setQueryData(
+            widgetQueryKeys.votedPosts.bySession(sessionVersionRef.current),
+            new Set<string>(result.votedPostIds)
+          )
+        }
+
         window.parent.postMessage(
           { type: 'quackback:identify-result', success: true, user: result.user },
           '*'
@@ -183,6 +200,8 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
           clearWidgetToken()
           sessionReadyRef.current = false
           sessionPromiseRef.current = null
+          sessionVersionRef.current += 1
+          setSessionVersion(sessionVersionRef.current)
           setUser(null)
           window.parent.postMessage(
             { type: 'quackback:identify-result', success: true, user: null },
@@ -204,8 +223,8 @@ export function WidgetAuthProvider({ children }: { children: ReactNode }) {
   }, [storeToken])
 
   const contextValue = useMemo(
-    () => ({ user, isIdentified, ensureSession, closeWidget, emitEvent, metadata: widgetMetadata }),
-    [user, isIdentified, ensureSession, closeWidget, emitEvent, widgetMetadata]
+    () => ({ user, isIdentified, ensureSession, closeWidget, emitEvent, metadata: widgetMetadata, sessionVersion }),
+    [user, isIdentified, ensureSession, closeWidget, emitEvent, widgetMetadata, sessionVersion]
   )
 
   return <WidgetAuthContext.Provider value={contextValue}>{children}</WidgetAuthContext.Provider>
