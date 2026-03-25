@@ -53,8 +53,8 @@ function toBracket(count: number): string {
 async function getFeatureFlags(): Promise<TelemetryPayload['features']> {
   try {
     const { config } = await import('@/lib/server/config')
-    const { getDeveloperConfig, getWidgetConfig } =
-      await import('@/lib/server/domains/settings/settings.service')
+    const { getDeveloperConfig } = await import('@/lib/server/domains/settings/settings.service')
+    const { getWidgetConfig } = await import('@/lib/server/domains/settings/settings.widget')
 
     const [devConfig, widgetConfig] = await Promise.all([
       getDeveloperConfig().catch(() => null),
