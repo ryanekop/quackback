@@ -293,11 +293,11 @@ export function WidgetHome({
   const canSubmitForm = title.trim() && (!needsEmail || email.trim()) && (canPost || needsEmail)
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full min-w-0 overflow-hidden">
       <ScrollArea className="flex-1 min-h-0">
-        <div className="px-3 pt-2 pb-3">
+        <div className="px-3 pt-2 pb-3 min-w-0">
           <motion.div
-            className="rounded-lg border border-border bg-card overflow-hidden"
+            className="rounded-lg border border-border bg-card overflow-hidden min-w-0"
             initial={false}
             animate={{
               boxShadow: expanded
