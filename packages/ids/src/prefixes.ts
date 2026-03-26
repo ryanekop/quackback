@@ -27,6 +27,11 @@ export const ID_PREFIXES = {
   roadmap: 'roadmap',
   changelog: 'changelog',
 
+  // Knowledge base
+  knowledgebase_category: 'kb_cat',
+  knowledgebase_article: 'kb_article',
+  knowledgebase_feedback: 'kb_fb',
+
   // Integrations
   integration: 'integration',
   platform_cred: 'platform_cred',
