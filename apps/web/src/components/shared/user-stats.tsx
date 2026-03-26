@@ -25,8 +25,8 @@ function StatItem({
         {value ?? '-'}
       </span>
       <div className="flex items-center gap-0.5 mt-0.5">
-        <Icon className={cn('text-muted-foreground/50', compact ? 'w-2.5 h-2.5' : 'w-3 h-3')} />
-        <span className={cn('text-muted-foreground/50', compact ? 'text-[9px]' : 'text-[10px]')}>
+        <Icon className={cn('text-muted-foreground', compact ? 'w-2.5 h-2.5' : 'w-3 h-3')} />
+        <span className={cn('text-muted-foreground', compact ? 'text-[9px]' : 'text-[10px]')}>
           {label}
         </span>
       </div>
