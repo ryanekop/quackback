@@ -152,7 +152,7 @@ function UserAvatarPopover({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="rounded-full hover:ring-2 hover:ring-primary/20 transition-all"
+        className="w-7 h-7 flex items-center justify-center rounded-full hover:ring-2 hover:ring-primary/20 transition-all"
         aria-label="User menu"
       >
         <Avatar src={user.avatarUrl} name={user.name} className="size-6 text-[10px]" />
