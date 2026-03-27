@@ -63,6 +63,17 @@ export default defineConfig(({ mode }) => {
         router: {
           routesDirectory: 'routes',
         },
+        importProtection: {
+          behavior: { dev: 'error', build: 'error' },
+          client: {
+            specifiers: [
+              'postgres',
+              '@quackback/db',
+              '@quackback/db/client',
+              '@quackback/db/schema',
+            ],
+          },
+        },
       }),
       viteReact(),
     ].filter(Boolean) as PluginOption[],

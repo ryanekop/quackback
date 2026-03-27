@@ -1,3 +1,4 @@
+import '@tanstack/react-start/server-only'
 /**
  * Domain-separated symmetric encryption using AES-256-GCM.
  *

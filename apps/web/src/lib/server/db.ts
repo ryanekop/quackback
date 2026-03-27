@@ -1,3 +1,4 @@
+import '@tanstack/react-start/server-only'
 /**
  * Core database connection for the web app.
  *

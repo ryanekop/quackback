@@ -1,3 +1,4 @@
+import '@tanstack/react-start/server-only'
 /**
  * Shared Redis (Dragonfly) client.
  *
