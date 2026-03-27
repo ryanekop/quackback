@@ -60,7 +60,7 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
-  Youtube as YoutubeIcon,
+  Play as YoutubeIcon,
   Download,
   Copy,
   Expand,
