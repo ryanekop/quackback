@@ -1,11 +1,3 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Avatar } from '@/components/ui/avatar'
 
 interface TopContributorsProps {
@@ -29,33 +21,28 @@ export function AnalyticsTopContributors({ contributors }: TopContributorsProps)
     )
   }
 
+  const maxTotal = Math.max(...contributors.map((c) => c.total), 1)
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Contributor</TableHead>
-          <TableHead className="w-20 text-right">Posts</TableHead>
-          <TableHead className="w-20 text-right">Votes</TableHead>
-          <TableHead className="w-24 text-right">Comments</TableHead>
-          <TableHead className="w-20 text-right">Total</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {contributors.map((c) => (
-          <TableRow key={c.principalId}>
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <Avatar src={c.avatarUrl} name={c.displayName} className="size-7 text-xs" />
-                <span className="font-medium">{c.displayName ?? 'Anonymous'}</span>
-              </div>
-            </TableCell>
-            <TableCell className="text-right tabular-nums">{c.posts}</TableCell>
-            <TableCell className="text-right tabular-nums">{c.votes}</TableCell>
-            <TableCell className="text-right tabular-nums">{c.comments}</TableCell>
-            <TableCell className="text-right tabular-nums font-medium">{c.total}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <div className="flex flex-col divide-y divide-border">
+      {contributors.map((c) => {
+        const barWidth = (c.total / maxTotal) * 100
+        return (
+          <div key={c.principalId} className="flex items-center gap-3 py-2.5">
+            <Avatar src={c.avatarUrl} name={c.displayName} className="size-7 shrink-0 text-xs" />
+            <span className="flex-1 truncate text-sm font-medium">
+              {c.displayName ?? 'Anonymous'}
+            </span>
+            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary/50"
+                style={{ width: `${barWidth}%` }}
+              />
+            </div>
+            <span className="w-8 text-right text-sm font-bold tabular-nums">{c.total}</span>
+          </div>
+        )
+      })}
+    </div>
   )
 }
