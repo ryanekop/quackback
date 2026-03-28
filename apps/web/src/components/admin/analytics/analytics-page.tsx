@@ -74,7 +74,7 @@ export function AnalyticsPage() {
       {/* Main content */}
       <main className="flex-1 min-w-0 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="mx-auto w-full max-w-4xl p-6 flex flex-col gap-6">
+          <div className="mx-auto w-full max-w-4xl px-6 pt-4 pb-6 flex flex-col gap-4">
             {/* Header: period selector + last updated */}
             <div className="flex items-center justify-end gap-3">
               {data?.computedAt && (
