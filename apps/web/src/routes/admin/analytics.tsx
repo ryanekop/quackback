@@ -23,24 +23,15 @@ function AnalyticsRoute() {
 
 function AnalyticsPageSkeleton() {
   return (
-    <div className="flex flex-col gap-6 p-6 animate-pulse">
-      <div className="flex items-center justify-between">
-        <div className="h-8 w-32 rounded bg-muted" />
-        <div className="flex gap-2">
+    <div className="flex h-full">
+      <div className="hidden lg:block w-64 xl:w-72 shrink-0 border-r border-border/50 bg-card/30" />
+      <div className="flex-1 p-6 flex flex-col gap-6 animate-pulse">
+        <div className="grid grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-9 w-20 rounded-md bg-muted" />
+            <div key={i} className="h-28 rounded-xl bg-muted" />
           ))}
         </div>
-      </div>
-      <div className="grid grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-28 rounded-lg bg-muted" />
-        ))}
-      </div>
-      <div className="h-72 rounded-lg bg-muted" />
-      <div className="grid grid-cols-2 gap-4">
-        <div className="h-56 rounded-lg bg-muted" />
-        <div className="h-56 rounded-lg bg-muted" />
+        <div className="h-72 rounded-xl bg-muted" />
       </div>
     </div>
   )

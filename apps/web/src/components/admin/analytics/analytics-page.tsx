@@ -3,9 +3,10 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { analyticsQueries, type AnalyticsPeriod } from '@/lib/client/queries/analytics'
 import { formatDistanceToNow } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/shared/utils'
+import { ChartBarIcon, InboxIcon, DocumentTextIcon, UsersIcon } from '@heroicons/react/24/solid'
 import { AnalyticsSummaryCards } from './analytics-summary-cards'
 import { AnalyticsActivityChart } from './analytics-activity-chart'
 import { AnalyticsStatusChart } from './analytics-status-chart'
@@ -14,6 +15,8 @@ import { AnalyticsChangelogCard } from './analytics-changelog-card'
 import { AnalyticsTopPosts } from './analytics-top-posts'
 import { AnalyticsTopContributors } from './analytics-top-contributors'
 
+type Section = 'overview' | 'feedback' | 'changelog' | 'users'
+
 const periods: Array<{ value: AnalyticsPeriod; label: string }> = [
   { value: '7d', label: '7d' },
   { value: '30d', label: '30d' },
@@ -21,142 +24,177 @@ const periods: Array<{ value: AnalyticsPeriod; label: string }> = [
   { value: '12m', label: '12m' },
 ]
 
+const navItems: Array<{ key: Section; label: string; icon: React.ElementType }> = [
+  { key: 'overview', label: 'Overview', icon: ChartBarIcon },
+  { key: 'feedback', label: 'Feedback', icon: InboxIcon },
+  { key: 'changelog', label: 'Changelog', icon: DocumentTextIcon },
+  { key: 'users', label: 'Users', icon: UsersIcon },
+]
+
 export function AnalyticsPage() {
   const [period, setPeriod] = useState<AnalyticsPeriod>('30d')
+  const [section, setSection] = useState<Section>('overview')
 
   const { data, isLoading } = useQuery({
     ...analyticsQueries.data(period),
     placeholderData: keepPreviousData,
   })
 
-  const periodSelector = (
-    <div className="flex items-center gap-1 rounded-lg border border-border/50 p-1">
-      {periods.map(({ value, label }) => (
-        <Button
-          key={value}
-          variant={period === value ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setPeriod(value)}
-        >
-          {label}
-        </Button>
-      ))}
-    </div>
-  )
-
-  if (isLoading) {
-    return (
-      <ScrollArea className="h-full">
-        <div className="flex flex-col gap-6 p-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-32" />
-              <Skeleton className="h-4 w-48" />
-            </div>
-            {periodSelector}
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-28 rounded-xl" />
-            ))}
-          </div>
-          <Skeleton className="h-72 rounded-xl" />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-60 rounded-xl" />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            <Skeleton className="col-span-3 h-72 rounded-xl" />
-            <Skeleton className="col-span-2 h-72 rounded-xl" />
-          </div>
-        </div>
-      </ScrollArea>
-    )
-  }
-
-  if (!data) return null
-
   return (
-    <ScrollArea className="h-full">
-      <div className="flex flex-col gap-6 p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-            {data.computedAt && (
-              <p className="text-sm text-muted-foreground">
-                Last updated {formatDistanceToNow(new Date(data.computedAt), { addSuffix: true })}
+    <div className="flex h-full bg-background">
+      {/* Left sidebar */}
+      <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 flex-col border-r border-border/50 bg-card/30 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-5 space-y-6">
+            {/* Section nav */}
+            <div className="space-y-1">
+              {navItems.map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSection(key)}
+                  className={cn(
+                    'flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors',
+                    section === key
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  )}
+                >
+                  <Icon className={cn('h-3.5 w-3.5 shrink-0', section === key && 'text-primary')} />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Period selector */}
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Period
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {periods.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setPeriod(value)}
+                    className={cn(
+                      'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                      period === value
+                        ? 'bg-muted text-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Last updated */}
+            {data?.computedAt && (
+              <p className="text-[11px] text-muted-foreground">
+                Updated {formatDistanceToNow(new Date(data.computedAt), { addSuffix: true })}
               </p>
             )}
           </div>
-          {periodSelector}
-        </div>
+        </ScrollArea>
+      </aside>
 
-        {/* KPI cards with sparklines */}
-        <AnalyticsSummaryCards summary={data.summary} dailyStats={data.dailyStats} />
+      {/* Main content */}
+      <main className="flex-1 min-w-0 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-6">
+            {isLoading ? (
+              <SectionSkeleton />
+            ) : !data ? null : (
+              <>
+                {section === 'overview' && (
+                  <div className="flex flex-col gap-6">
+                    <AnalyticsSummaryCards summary={data.summary} dailyStats={data.dailyStats} />
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Activity over time</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <AnalyticsActivityChart dailyStats={data.dailyStats} />
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
 
-        {/* Activity over time */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Activity over time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AnalyticsActivityChart dailyStats={data.dailyStats} />
-          </CardContent>
-        </Card>
+                {section === 'feedback' && (
+                  <div className="flex flex-col gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Status distribution</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <AnalyticsStatusChart data={data.statusDistribution} />
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Boards</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <AnalyticsBoardChart data={data.boardBreakdown} />
+                        </CardContent>
+                      </Card>
+                    </div>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Top posts</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <AnalyticsTopPosts posts={data.topPosts} />
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
 
-        {/* Breakdown row: status + boards + changelog */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Status distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AnalyticsStatusChart data={data.statusDistribution} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Boards</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AnalyticsBoardChart data={data.boardBreakdown} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Changelog views</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AnalyticsChangelogCard
-                topEntries={data.changelog.topEntries}
-                totalViews={data.changelog.totalViews}
-              />
-            </CardContent>
-          </Card>
-        </div>
+                {section === 'changelog' && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Changelog views</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <AnalyticsChangelogCard
+                        topEntries={data.changelog.topEntries}
+                        totalViews={data.changelog.totalViews}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
-        {/* Bottom row: top posts + contributors */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Top posts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AnalyticsTopPosts posts={data.topPosts} />
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Top contributors</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AnalyticsTopContributors contributors={data.topContributors} />
-            </CardContent>
-          </Card>
-        </div>
+                {section === 'users' && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Top contributors</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <AnalyticsTopContributors contributors={data.topContributors} />
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+          </div>
+        </ScrollArea>
+      </main>
+    </div>
+  )
+}
+
+function SectionSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 rounded-xl" />
+        ))}
       </div>
-    </ScrollArea>
+      <Skeleton className="h-72 rounded-xl" />
+    </div>
   )
 }
