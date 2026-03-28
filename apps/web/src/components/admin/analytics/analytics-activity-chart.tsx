@@ -54,16 +54,17 @@ export function AnalyticsActivityChart({ dailyStats, activeMetric, color }: Acti
           allowDecimals={false}
           tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
           width={32}
+          domain={[0, (dataMax: number) => Math.max(dataMax, 4)]}
         />
         <ChartTooltip
           content={<ChartTooltipContent labelFormatter={(label) => formatDate(String(label))} />}
         />
         <Area
-          type="natural"
+          type="monotone"
           dataKey={activeMetric}
           stroke={`var(--color-${activeMetric})`}
           fill={`var(--color-${activeMetric})`}
-          fillOpacity={0.05}
+          fillOpacity={0.15}
           strokeWidth={1.5}
           dot={false}
           activeDot={{ r: 3, strokeWidth: 0 }}

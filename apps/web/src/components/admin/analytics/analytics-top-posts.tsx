@@ -45,7 +45,7 @@ export function AnalyticsTopPosts({ posts }: TopPostsProps) {
               >
                 {post.title}
               </Link>
-              <span className="relative ml-4 shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="relative ml-4 shrink-0 tabular-nums text-sm text-muted-foreground">
                 {post.voteCount}
               </span>
             </div>

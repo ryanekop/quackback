@@ -44,7 +44,7 @@ export function AnalyticsSummaryCards({ summary, activeMetric, onMetricChange }:
             <p className="mb-2 text-[10px] font-medium tracking-widest uppercase text-muted-foreground">
               {label}
             </p>
-            <p className="font-mono text-[2rem] leading-none font-semibold tabular-nums tracking-tight">
+            <p className="text-[2rem] leading-none font-semibold tabular-nums tracking-tight">
               {total.toLocaleString()}
             </p>
             {/* Active indicator */}

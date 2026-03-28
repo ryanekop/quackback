@@ -32,7 +32,7 @@ export function AnalyticsBoardChart({ data }: BoardChartProps) {
                 style={{ width: `${pct}%` }}
               />
               <span className="relative flex-1 truncate px-1 text-sm">{item.board}</span>
-              <span className="relative ml-4 shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="relative ml-4 shrink-0 tabular-nums text-sm text-muted-foreground">
                 {item.count}
               </span>
             </div>

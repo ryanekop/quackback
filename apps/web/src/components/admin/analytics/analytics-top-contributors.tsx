@@ -49,7 +49,7 @@ export function AnalyticsTopContributors({ contributors }: TopContributorsProps)
               <span className="relative flex-1 truncate text-sm">
                 {c.displayName ?? 'Anonymous'}
               </span>
-              <span className="relative ml-4 shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="relative ml-4 shrink-0 tabular-nums text-sm text-muted-foreground">
                 {c.total}
               </span>
             </div>

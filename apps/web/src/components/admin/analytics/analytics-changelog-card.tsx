@@ -30,14 +30,14 @@ export function AnalyticsChangelogCard({ topEntries, totalViews }: ChangelogCard
                 style={{ width: `${pct}%` }}
               />
               <span className="relative flex-1 truncate px-1 text-sm">{entry.title}</span>
-              <span className="relative ml-4 shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="relative ml-4 shrink-0 tabular-nums text-sm text-muted-foreground">
                 {entry.viewCount.toLocaleString()}
               </span>
             </div>
           )
         })}
       </div>
-      <p className="mt-3 text-right font-mono text-xs text-muted-foreground">
+      <p className="mt-3 text-right text-xs text-muted-foreground">
         {totalViews.toLocaleString()} total views
       </p>
     </div>
