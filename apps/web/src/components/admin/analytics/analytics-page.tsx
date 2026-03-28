@@ -112,7 +112,7 @@ export function AnalyticsPage() {
                       activeMetric={activeMetric}
                       onMetricChange={setActiveMetric}
                     />
-                    <div className="border-t border-border/50 px-6 pt-5 pb-6">
+                    <div className="border-t border-border/50 px-6 pt-7 pb-6">
                       <AnalyticsActivityChart
                         dailyStats={data.dailyStats}
                         activeMetric={activeMetric}
@@ -197,7 +197,7 @@ function SectionSkeleton() {
           </div>
         ))}
       </div>
-      <div className="border-t border-border/50 px-6 pt-5 pb-6">
+      <div className="border-t border-border/50 px-6 pt-7 pb-6">
         <Skeleton className="h-[280px] w-full rounded-lg" />
       </div>
     </Card>
