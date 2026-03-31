@@ -98,4 +98,46 @@ describe('buildWidgetSDK', () => {
     const result = buildWidgetSDK('https://feedback.acme.com')
     expect(result).toContain('window.innerWidth < 640')
   })
+
+  it('positions desktop panel above the trigger button (bottom: 88px)', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    // Panel must be offset above the trigger (24px margin + 56px trigger + 8px gap)
+    expect(result).toContain('bottom: "88px"')
+  })
+
+  it('defines CHAT_ICON and CLOSE_ICON variables for icon swap', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    expect(result).toContain('var CHAT_ICON =')
+    expect(result).toContain('var CLOSE_ICON =')
+  })
+
+  it('fades CLOSE_ICON in when panel opens on desktop', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    // Icon swap uses CSS opacity/transform transitions on separate icon elements
+    expect(result).toContain('iconClose.style.opacity = "1"')
+    expect(result).toContain('iconChat.style.opacity = "0"')
+  })
+
+  it('fades CHAT_ICON in when panel closes on desktop', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    expect(result).toContain('iconChat.style.opacity = "1"')
+    expect(result).toContain('iconClose.style.opacity = "0"')
+  })
+
+  it('hides trigger on mobile when panel opens (conditional on isMobile)', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    // Mobile still hides trigger since full-screen panel covers it — must be conditional
+    expect(result).toContain('if (isMobile) {')
+    expect(result).toContain('trigger.style.display = "none"')
+  })
+
+  it('trigger click dispatches close when panel is open', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    expect(result).toContain('if (isOpen) dispatch("close")')
+  })
+
+  it('sets aria-label to "Close feedback widget" when panel opens on desktop', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    expect(result).toContain('Close feedback widget')
+  })
 })

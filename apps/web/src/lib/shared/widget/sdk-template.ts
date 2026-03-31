@@ -37,6 +37,10 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
   })};
   var WIDGET_URL = BASE_URL + "/widget";
 
+  // Icon SVGs
+  var CHAT_ICON = '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M4.913 2.658c2.075-.27 4.19-.408 6.337-.408 2.147 0 4.262.139 6.337.408 1.922.25 3.291 1.861 3.405 3.727a4.403 4.403 0 0 0-1.032-.211 50.89 50.89 0 0 0-8.42 0c-2.358.196-4.04 2.19-4.04 4.434v4.286a4.47 4.47 0 0 0 2.433 3.984L7.28 21.53A.75.75 0 0 1 6 21v-4.03a48.527 48.527 0 0 1-1.087-.128C2.905 16.58 1.5 14.833 1.5 12.862V6.638c0-1.97 1.405-3.718 3.413-3.979Z"/><path d="M15.75 7.5c-1.376 0-2.739.057-4.086.169C10.124 7.797 9 9.103 9 10.609v4.285c0 1.507 1.128 2.814 2.67 2.94 1.243.102 2.5.157 3.768.165l2.782 2.781a.75.75 0 0 0 1.28-.53v-2.39l.33-.026c1.542-.125 2.67-1.433 2.67-2.94v-4.286c0-1.505-1.125-2.811-2.664-2.94A49.392 49.392 0 0 0 15.75 7.5Z"/></svg>';
+  var CLOSE_ICON = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
   // State
   var config = null;
   var iframe = null;
@@ -48,6 +52,8 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
   var isIdentified = false;
   var pendingIdentify = null;
   var metadata = null;
+  var iconChat = null;
+  var iconClose = null;
   var listeners = {};
   var pendingOpen = null;
   var isMobile = window.innerWidth < 640;
@@ -136,8 +142,42 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
       "aria-expanded": "false",
     });
 
-    // Chat bubbles icon (Heroicons solid)
-    trigger.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M4.913 2.658c2.075-.27 4.19-.408 6.337-.408 2.147 0 4.262.139 6.337.408 1.922.25 3.291 1.861 3.405 3.727a4.403 4.403 0 0 0-1.032-.211 50.89 50.89 0 0 0-8.42 0c-2.358.196-4.04 2.19-4.04 4.434v4.286a4.47 4.47 0 0 0 2.433 3.984L7.28 21.53A.75.75 0 0 1 6 21v-4.03a48.527 48.527 0 0 1-1.087-.128C2.905 16.58 1.5 14.833 1.5 12.862V6.638c0-1.97 1.405-3.718 3.413-3.979Z"/><path d="M15.75 7.5c-1.376 0-2.739.057-4.086.169C10.124 7.797 9 9.103 9 10.609v4.285c0 1.507 1.128 2.814 2.67 2.94 1.243.102 2.5.157 3.768.165l2.782 2.781a.75.75 0 0 0 1.28-.53v-2.39l.33-.026c1.542-.125 2.67-1.433 2.67-2.94v-4.286c0-1.505-1.125-2.811-2.664-2.94A49.392 49.392 0 0 0 15.75 7.5Z"/></svg>';
+    // Stacked icons — both rendered, toggled via opacity + rotation
+    var iconWrapper = createElement("div", {
+      position: "relative",
+      display: "flex",
+      width: "28px",
+      height: "28px",
+      flexShrink: "0",
+    });
+
+    var iconTransition = "opacity 220ms cubic-bezier(0.34,1.56,0.64,1), transform 220ms cubic-bezier(0.34,1.56,0.64,1)";
+
+    iconChat = createElement("span", {
+      position: "absolute",
+      top: "0",
+      left: "0",
+      display: "flex",
+      opacity: "1",
+      transform: "rotate(0deg)",
+      transition: iconTransition,
+    });
+    iconChat.innerHTML = CHAT_ICON;
+
+    iconClose = createElement("span", {
+      position: "absolute",
+      top: "0",
+      left: "0",
+      display: "flex",
+      opacity: "0",
+      transform: "rotate(-90deg)",
+      transition: iconTransition,
+    });
+    iconClose.innerHTML = CLOSE_ICON;
+
+    iconWrapper.appendChild(iconChat);
+    iconWrapper.appendChild(iconClose);
+    trigger.appendChild(iconWrapper);
 
     trigger.addEventListener("mouseenter", function() {
       trigger.style.transform = "translateY(-2px)";
@@ -147,7 +187,7 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
       trigger.style.transform = "translateY(0)";
       trigger.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
     });
-    trigger.addEventListener("click", function() { dispatch("open"); });
+    trigger.addEventListener("click", function() { if (isOpen) dispatch("close"); else dispatch("open"); });
 
     // Listen for color scheme changes to update button colors
     if (THEME.themeMode === "user" && window.matchMedia) {
@@ -165,8 +205,10 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
     if (panel) return;
 
     var placement = (config && config.placement) || "right";
-    var boardParam = config && config.defaultBoard ? "?board=" + encodeURIComponent(config.defaultBoard) : "";
-    var iframeUrl = WIDGET_URL + boardParam;
+    var boardParam = config && config.defaultBoard ? "board=" + encodeURIComponent(config.defaultBoard) : "";
+    var closeParam = config && config.trigger === false ? "showClose=1" : "";
+    var queryParts = [boardParam, closeParam].filter(Boolean);
+    var iframeUrl = WIDGET_URL + (queryParts.length ? "?" + queryParts.join("&") : "");
 
     // Backdrop (mobile only)
     backdrop = createElement("div", {
@@ -201,19 +243,18 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
     } else {
       panel = createElement("div", {
         position: "fixed",
-        bottom: "24px",
+        bottom: "88px",
         [placement === "left" ? "left" : "right"]: "24px",
         zIndex: "2147483647",
         width: "400px",
-        height: "min(600px, calc(100vh - 100px))",
+        height: "min(600px, calc(100vh - 108px))",
         borderRadius: "12px",
         overflow: "hidden",
         boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
         display: "none",
         opacity: "0",
-        transform: "scale(0.95)",
+        transform: "scale(0)",
         transformOrigin: placement === "left" ? "bottom left" : "bottom right",
-        transition: "opacity 200ms ease-out, transform 200ms ease-out",
       }, {
         className: "quackback-widget-iframe-wrapper",
       });
@@ -242,8 +283,18 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
     isOpen = true;
 
     if (trigger) {
-      trigger.style.display = "none";
       trigger.setAttribute("aria-expanded", "true");
+      if (isMobile) {
+        trigger.style.display = "none";
+      } else {
+        trigger.setAttribute("aria-label", "Close feedback widget");
+        if (iconChat && iconClose) {
+          iconChat.style.opacity = "0";
+          iconChat.style.transform = "rotate(90deg)";
+          iconClose.style.opacity = "1";
+          iconClose.style.transform = "rotate(0deg)";
+        }
+      }
     }
 
     if (isMobile) {
@@ -254,8 +305,9 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
       panel.style.transform = "translateY(0)";
     } else {
       panel.style.display = "block";
-      // Force reflow
+      // Force reflow so the browser commits opacity:0 / scale(0) before we transition
       void panel.offsetHeight;
+      panel.style.transition = "opacity 280ms cubic-bezier(0.34,1.56,0.64,1), transform 280ms cubic-bezier(0.34,1.56,0.64,1)";
       panel.style.opacity = "1";
       panel.style.transform = "scale(1)";
     }
@@ -268,8 +320,17 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
     isOpen = false;
 
     if (trigger && isIdentified && !(config && config.trigger === false)) {
-      trigger.style.display = "flex";
       trigger.setAttribute("aria-expanded", "false");
+      trigger.style.display = "flex"; // Always restore — handles mobile→desktop resize edge case
+      if (!isMobile) {
+        trigger.setAttribute("aria-label", "Open feedback widget");
+        if (iconChat && iconClose) {
+          iconChat.style.opacity = "1";
+          iconChat.style.transform = "rotate(0deg)";
+          iconClose.style.opacity = "0";
+          iconClose.style.transform = "rotate(-90deg)";
+        }
+      }
     }
 
     if (isMobile) {
@@ -277,8 +338,9 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
       panel.style.transform = "translateY(100%)";
       setTimeout(function() { backdrop.style.display = "none"; }, 200);
     } else {
+      panel.style.transition = "opacity 200ms cubic-bezier(0.4,0,1,1), transform 200ms cubic-bezier(0.4,0,1,1)";
       panel.style.opacity = "0";
-      panel.style.transform = "scale(0.95)";
+      panel.style.transform = "scale(0)";
       setTimeout(function() { if (!isOpen && panel) panel.style.display = "none"; }, 200);
     }
 
