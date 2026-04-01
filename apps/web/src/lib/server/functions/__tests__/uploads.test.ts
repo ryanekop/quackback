@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { PrincipalId, UserId, WorkspaceId } from '@quackback/ids'
 
 // Mock createServerFn so server functions are directly callable in tests
 vi.mock('@tanstack/react-start', () => ({
@@ -36,12 +37,13 @@ vi.mock('../widget-auth', () => ({
 }))
 
 import { getWidgetSession } from '../widget-auth'
+import type { WidgetAuthContext } from '../widget-auth'
 import { getWidgetImageUploadUrlFn } from '../uploads'
 
-const mockSession = {
-  settings: { id: 'ws_1' as any, slug: 'test', name: 'Test' },
-  user: { id: 'usr_1' as any, email: 'a@b.com', name: 'A', image: null },
-  principal: { id: 'pri_1' as any, role: 'user' as const, type: 'user' },
+const mockSession: WidgetAuthContext = {
+  settings: { id: 'workspace_test1' as WorkspaceId, slug: 'test', name: 'Test' },
+  user: { id: 'user_test1' as UserId, email: 'a@b.com', name: 'A', image: null },
+  principal: { id: 'principal_test1' as PrincipalId, role: 'user' as const, type: 'user' },
 }
 
 describe('getWidgetImageUploadUrlFn', () => {
@@ -59,11 +61,11 @@ describe('getWidgetImageUploadUrlFn', () => {
   })
 
   it('rejects when widget session is anonymous', async () => {
-    const anonymousSession = {
+    const anonymousSession: WidgetAuthContext = {
       ...mockSession,
-      principal: { ...mockSession.principal, type: 'anonymous' as const },
+      principal: { ...mockSession.principal, type: 'anonymous' },
     }
-    vi.mocked(getWidgetSession).mockResolvedValueOnce(anonymousSession as any)
+    vi.mocked(getWidgetSession).mockResolvedValueOnce(anonymousSession)
     await expect(
       getWidgetImageUploadUrlFn({
         data: { filename: 'test.jpg', contentType: 'image/jpeg', fileSize: 1000 },

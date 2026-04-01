@@ -26,6 +26,7 @@ vi.mock('@/lib/server/storage/s3', async () => {
 import { auth } from '@/lib/server/auth'
 import { db } from '@/lib/server/db'
 import { isS3Configured, uploadObject, generateStorageKey } from '@/lib/server/storage/s3'
+import { mockAs } from '../../__tests__/mock-utils'
 import { handleAdminUpload } from '../image'
 
 function makeRequest(file?: File, prefix?: string): Request {
@@ -59,16 +60,16 @@ describe('POST /api/upload/image', () => {
   })
 
   it('returns 403 for portal users (non-admin/member)', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(userSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(userPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(userSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(userPrincipal))
     const res = await handleAdminUpload({ request: makeRequest() })
     expect(res.status).toBe(403)
     expect(await res.json()).toMatchObject({ error: 'Forbidden' })
   })
 
   it('allows members to upload', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(memberSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(memberPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(memberSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(memberPrincipal))
     vi.mocked(uploadObject).mockResolvedValueOnce('https://cdn.example.com/uploads/img.jpg')
     const file = new File(['img'], 'img.jpg', { type: 'image/jpeg' })
     const res = await handleAdminUpload({ request: makeRequest(file) })
@@ -76,24 +77,24 @@ describe('POST /api/upload/image', () => {
   })
 
   it('returns 503 when S3 is not configured', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(adminSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(adminPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(adminSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(adminPrincipal))
     vi.mocked(isS3Configured).mockReturnValue(false)
     const res = await handleAdminUpload({ request: makeRequest() })
     expect(res.status).toBe(503)
   })
 
   it('returns 400 when no file provided', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(adminSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(adminPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(adminSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(adminPrincipal))
     const res = await handleAdminUpload({ request: makeRequest() })
     expect(res.status).toBe(400)
     expect(await res.json()).toMatchObject({ error: 'No file provided' })
   })
 
   it('returns 400 for invalid file type', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(adminSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(adminPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(adminSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(adminPrincipal))
     const file = new File(['data'], 'file.txt', { type: 'text/plain' })
     const res = await handleAdminUpload({ request: makeRequest(file) })
     expect(res.status).toBe(400)
@@ -101,8 +102,8 @@ describe('POST /api/upload/image', () => {
   })
 
   it('returns 400 when file exceeds max size', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(adminSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(adminPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(adminSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(adminPrincipal))
     const oversized = new File([new Uint8Array(6 * 1024 * 1024)], 'big.jpg', {
       type: 'image/jpeg',
     })
@@ -112,8 +113,8 @@ describe('POST /api/upload/image', () => {
   })
 
   it('uses the provided prefix when it is in the allowlist', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(adminSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(adminPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(adminSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(adminPrincipal))
     vi.mocked(uploadObject).mockResolvedValueOnce(
       'https://cdn.example.com/changelog-images/img.png'
     )
@@ -123,8 +124,8 @@ describe('POST /api/upload/image', () => {
   })
 
   it('falls back to uploads prefix for unknown prefixes', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(adminSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(adminPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(adminSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(adminPrincipal))
     vi.mocked(uploadObject).mockResolvedValueOnce('https://cdn.example.com/uploads/img.png')
     const file = new File(['img'], 'img.png', { type: 'image/png' })
     await handleAdminUpload({ request: makeRequest(file, 'totally-unknown-prefix') })
@@ -140,8 +141,8 @@ describe('POST /api/upload/image', () => {
       'help-center',
     ]
     for (const prefix of allowedPrefixes) {
-      vi.mocked(auth.api.getSession).mockResolvedValueOnce(adminSession as any)
-      vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(adminPrincipal as any)
+      vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(adminSession))
+      vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(adminPrincipal))
       vi.mocked(uploadObject).mockResolvedValueOnce(`https://cdn.example.com/${prefix}/img.png`)
       const file = new File(['img'], 'img.png', { type: 'image/png' })
       await handleAdminUpload({ request: makeRequest(file, prefix) })
@@ -152,8 +153,8 @@ describe('POST /api/upload/image', () => {
   })
 
   it('uploads image and returns publicUrl', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(adminSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(adminPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(adminSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(adminPrincipal))
     vi.mocked(uploadObject).mockResolvedValueOnce('https://cdn.example.com/post-images/photo.gif')
     const file = new File(['img'], 'photo.gif', { type: 'image/gif' })
     const res = await handleAdminUpload({ request: makeRequest(file, 'post-images') })

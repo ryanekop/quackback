@@ -26,6 +26,7 @@ vi.mock('@/lib/server/storage/s3', async () => {
 import { auth } from '@/lib/server/auth'
 import { db } from '@/lib/server/db'
 import { isS3Configured, uploadObject } from '@/lib/server/storage/s3'
+import { mockAs } from '../../__tests__/mock-utils'
 import { handlePortalUpload } from '../upload'
 
 function makeRequest(file?: File, headers?: Record<string, string>): Request {
@@ -61,32 +62,32 @@ describe('POST /api/portal/upload', () => {
   })
 
   it('returns 403 when session is anonymous', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(anonymousSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(anonymousPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(anonymousSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(anonymousPrincipal))
     const res = await handlePortalUpload({ request: makeRequest() })
     expect(res.status).toBe(403)
     expect(await res.json()).toMatchObject({ error: expect.stringContaining('Authentication') })
   })
 
   it('returns 503 when S3 is not configured', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(identifiedSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(identifiedSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     vi.mocked(isS3Configured).mockReturnValue(false)
     const res = await handlePortalUpload({ request: makeRequest() })
     expect(res.status).toBe(503)
   })
 
   it('returns 400 when no file provided', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(identifiedSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(identifiedSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     const res = await handlePortalUpload({ request: makeRequest() })
     expect(res.status).toBe(400)
     expect(await res.json()).toMatchObject({ error: 'No file provided' })
   })
 
   it('returns 400 for invalid file type', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(identifiedSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(identifiedSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     const file = new File(['data'], 'clip.mp4', { type: 'video/mp4' })
     const res = await handlePortalUpload({ request: makeRequest(file) })
     expect(res.status).toBe(400)
@@ -94,8 +95,8 @@ describe('POST /api/portal/upload', () => {
   })
 
   it('returns 400 when file exceeds max size', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(identifiedSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(identifiedSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     const oversized = new File([new Uint8Array(6 * 1024 * 1024)], 'big.jpg', {
       type: 'image/jpeg',
     })
@@ -105,8 +106,8 @@ describe('POST /api/portal/upload', () => {
   })
 
   it('uploads image and returns publicUrl for identified user', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(identifiedSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(identifiedSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     vi.mocked(uploadObject).mockResolvedValueOnce('https://cdn.example.com/portal-images/photo.jpg')
     const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
     const res = await handlePortalUpload({ request: makeRequest(file) })
@@ -121,8 +122,8 @@ describe('POST /api/portal/upload', () => {
   })
 
   it('uses portal-images prefix for storage key', async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValueOnce(identifiedSession as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(auth.api.getSession).mockResolvedValueOnce(mockAs(identifiedSession))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     vi.mocked(uploadObject).mockResolvedValueOnce('https://cdn.example.com/portal-images/img.png')
     const file = new File(['img'], 'img.png', { type: 'image/png' })
     await handlePortalUpload({ request: makeRequest(file) })

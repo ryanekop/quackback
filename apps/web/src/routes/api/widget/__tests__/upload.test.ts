@@ -26,6 +26,7 @@ vi.mock('@/lib/server/domains/settings/settings.widget', () => ({
 import { db } from '@/lib/server/db'
 import { isS3Configured, uploadObject } from '@/lib/server/storage/s3'
 import { getWidgetConfig } from '@/lib/server/domains/settings/settings.widget'
+import { mockAs } from '../../__tests__/mock-utils'
 import { handleWidgetUpload } from '../upload'
 
 function makeRequest(file?: File, token?: string): Request {
@@ -50,7 +51,7 @@ describe('POST /api/widget/upload', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(isS3Configured).mockReturnValue(true)
-    vi.mocked(getWidgetConfig).mockResolvedValue({ imageUploadsInWidget: true } as any)
+    vi.mocked(getWidgetConfig).mockResolvedValue(mockAs({ imageUploadsInWidget: true }))
   })
 
   it('returns 401 when no Authorization header', async () => {
@@ -66,41 +67,41 @@ describe('POST /api/widget/upload', () => {
   })
 
   it('returns 403 when principal is anonymous', async () => {
-    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(sessionRecord as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(anonymousPrincipal as any)
+    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(mockAs(sessionRecord))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(anonymousPrincipal))
     const res = await handleWidgetUpload({ request: makeRequest(undefined, 'valid-token') })
     expect(res.status).toBe(403)
     expect(await res.json()).toMatchObject({ error: expect.stringContaining('Authentication') })
   })
 
   it('returns 403 when imageUploadsInWidget is disabled', async () => {
-    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(sessionRecord as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
-    vi.mocked(getWidgetConfig).mockResolvedValueOnce({ imageUploadsInWidget: false } as any)
+    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(mockAs(sessionRecord))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
+    vi.mocked(getWidgetConfig).mockResolvedValueOnce(mockAs({ imageUploadsInWidget: false }))
     const res = await handleWidgetUpload({ request: makeRequest(undefined, 'valid-token') })
     expect(res.status).toBe(403)
     expect(await res.json()).toMatchObject({ error: expect.stringContaining('disabled') })
   })
 
   it('returns 503 when S3 is not configured', async () => {
-    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(sessionRecord as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(mockAs(sessionRecord))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     vi.mocked(isS3Configured).mockReturnValue(false)
     const res = await handleWidgetUpload({ request: makeRequest(undefined, 'valid-token') })
     expect(res.status).toBe(503)
   })
 
   it('returns 400 when no file provided', async () => {
-    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(sessionRecord as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(mockAs(sessionRecord))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     const res = await handleWidgetUpload({ request: makeRequest(undefined, 'valid-token') })
     expect(res.status).toBe(400)
     expect(await res.json()).toMatchObject({ error: 'No file provided' })
   })
 
   it('returns 400 for invalid file type', async () => {
-    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(sessionRecord as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(mockAs(sessionRecord))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     const file = new File(['data'], 'doc.pdf', { type: 'application/pdf' })
     const res = await handleWidgetUpload({ request: makeRequest(file, 'valid-token') })
     expect(res.status).toBe(400)
@@ -108,8 +109,8 @@ describe('POST /api/widget/upload', () => {
   })
 
   it('returns 400 when file exceeds max size', async () => {
-    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(sessionRecord as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(mockAs(sessionRecord))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     const oversized = new File([new Uint8Array(6 * 1024 * 1024)], 'big.png', {
       type: 'image/png',
     })
@@ -119,8 +120,8 @@ describe('POST /api/widget/upload', () => {
   })
 
   it('uploads image and returns publicUrl for identified widget user', async () => {
-    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(sessionRecord as any)
-    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(identifiedPrincipal as any)
+    vi.mocked(db.query.session.findFirst).mockResolvedValueOnce(mockAs(sessionRecord))
+    vi.mocked(db.query.principal.findFirst).mockResolvedValueOnce(mockAs(identifiedPrincipal))
     vi.mocked(uploadObject).mockResolvedValueOnce('https://cdn.example.com/widget-images/shot.webp')
     const file = new File(['img'], 'shot.webp', { type: 'image/webp' })
     const res = await handleWidgetUpload({ request: makeRequest(file, 'valid-token') })
