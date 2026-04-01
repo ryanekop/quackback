@@ -8,6 +8,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { redirect } from '@tanstack/react-router'
 import { z } from 'zod'
+import type { UserId } from '@quackback/ids'
 import { getSession } from './auth'
 import { db, principal, eq } from '@/lib/server/db'
 
@@ -48,7 +49,7 @@ export const requireWorkspaceRole = createServerFn({ method: 'GET' })
       // Note: Onboarding check is handled in __root.tsx beforeLoad
 
       const principalRecord = await db.query.principal.findFirst({
-        where: eq(principal.userId, session.user.id),
+        where: eq(principal.userId, session.user.id as UserId),
       })
       if (!principalRecord) {
         throw redirect({ to: '/' })

@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import type { UserId } from '@quackback/ids'
 import { auth } from '@/lib/server/auth'
 import { db, eq, principal } from '@/lib/server/db'
 import { isS3Configured, uploadImageFromFormData } from '@/lib/server/storage/s3'
@@ -9,7 +10,7 @@ export async function handlePortalUpload({ request }: { request: Request }): Pro
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const principalRecord = await db.query.principal.findFirst({
-    where: eq(principal.userId, session.user.id),
+    where: eq(principal.userId, session.user.id as UserId),
     columns: { type: true },
   })
   if (!principalRecord || principalRecord.type === 'anonymous') {
