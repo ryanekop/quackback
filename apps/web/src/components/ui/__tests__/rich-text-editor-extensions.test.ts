@@ -74,13 +74,13 @@ describe('buildExtensions', () => {
     expect(names1).toEqual(names2)
   })
 
-  it('includes image extension only when images feature is enabled', () => {
+  it('always includes image extension for schema compatibility', () => {
     const with_ = buildExtensions({ images: true }, { placeholder: '' })
     const without = buildExtensions({ images: false }, { placeholder: '' })
     const withNames = with_.map((e) => (e as { name: string }).name)
     const withoutNames = without.map((e) => (e as { name: string }).name)
     expect(withNames).toContain('image')
-    expect(withoutNames).not.toContain('image')
+    expect(withoutNames).toContain('image')
   })
 
   it('includes slashCommands extension by default', () => {
