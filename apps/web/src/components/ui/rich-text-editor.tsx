@@ -135,16 +135,13 @@ export function buildExtensions(
         class: 'text-primary underline',
       },
     }),
-    ...(features.images
-      ? [
-          ResizableImage.configure({
-            HTMLAttributes: {
-              class: 'max-w-full h-auto rounded-lg',
-            },
-            allowBase64: false,
-          }),
-        ]
-      : []),
+    // Always register so the schema can parse image nodes in existing content
+    ResizableImage.configure({
+      HTMLAttributes: {
+        class: 'max-w-full h-auto rounded-lg',
+      },
+      allowBase64: false,
+    }),
     ...(features.codeBlocks
       ? [
           CodeBlockLowlight.configure({

@@ -50,6 +50,7 @@ function DialogContent({
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay className={instant ? '!animate-none !duration-0' : undefined} />
       <DialogPrimitive.Content
+        aria-describedby={undefined}
         data-slot="dialog-content"
         className={cn(
           'bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 [border-radius:var(--radius)] border p-6 shadow-lg outline-none',
