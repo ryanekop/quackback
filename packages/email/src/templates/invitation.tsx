@@ -11,22 +11,22 @@ import {
   Section,
   Text,
 } from '@react-email/components'
-import { layout, typography, button, utils, branding } from './shared-styles'
+import { layout, typography, button, utils, branding, DEFAULT_LOGO_URL } from './shared-styles'
 
 interface InvitationEmailProps {
   invitedByName: string
   inviteeName?: string
   organizationName: string
   inviteLink: string
+  logoUrl?: string
 }
-
-const LOGO_URL = 'https://quackback.io/logo.png'
 
 export function InvitationEmail({
   invitedByName,
   inviteeName,
   organizationName,
   inviteLink,
+  logoUrl,
 }: InvitationEmailProps) {
   return (
     <Html>
@@ -36,7 +36,7 @@ export function InvitationEmail({
         <Container style={layout.container}>
           {/* Logo */}
           <Section style={branding.logoContainer}>
-            <Img src={LOGO_URL} alt="Quackback" style={branding.logo} />
+            <Img src={logoUrl ?? DEFAULT_LOGO_URL} alt={organizationName} style={branding.logo} />
           </Section>
 
           {/* Content */}

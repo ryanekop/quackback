@@ -11,7 +11,15 @@ import {
   Section,
   Text,
 } from '@react-email/components'
-import { layout, typography, button, utils, branding, colors } from './shared-styles'
+import {
+  layout,
+  typography,
+  button,
+  utils,
+  branding,
+  colors,
+  DEFAULT_LOGO_URL,
+} from './shared-styles'
 
 interface FeedbackLinkedEmailProps {
   recipientName?: string
@@ -20,9 +28,8 @@ interface FeedbackLinkedEmailProps {
   workspaceName: string
   unsubscribeUrl: string
   attributedByName?: string
+  logoUrl?: string
 }
-
-const LOGO_URL = 'https://quackback.io/logo.png'
 
 export function FeedbackLinkedEmail({
   recipientName,
@@ -31,6 +38,7 @@ export function FeedbackLinkedEmail({
   workspaceName,
   unsubscribeUrl,
   attributedByName,
+  logoUrl,
 }: FeedbackLinkedEmailProps) {
   const greeting = recipientName ? `Thanks ${recipientName}!` : 'Thanks!'
   const attribution = attributedByName
@@ -45,7 +53,7 @@ export function FeedbackLinkedEmail({
         <Container style={layout.container}>
           {/* Logo */}
           <Section style={branding.logoContainer}>
-            <Img src={LOGO_URL} alt="Quackback" style={branding.logo} />
+            <Img src={logoUrl ?? DEFAULT_LOGO_URL} alt={workspaceName} style={branding.logo} />
           </Section>
 
           {/* Content */}

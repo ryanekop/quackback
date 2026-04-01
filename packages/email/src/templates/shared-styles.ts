@@ -5,6 +5,8 @@
  * Colors are derived from the app's design system.
  */
 
+export const DEFAULT_LOGO_URL = 'https://quackback.io/logo.png'
+
 // Brand colors (converted from oklch to hex for email compatibility)
 export const colors = {
   // Primary gold - oklch(0.886 0.176 86) ≈ #FFD43B

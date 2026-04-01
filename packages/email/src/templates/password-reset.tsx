@@ -11,15 +11,14 @@ import {
   Section,
   Text,
 } from '@react-email/components'
-import { layout, typography, button, utils, branding } from './shared-styles'
+import { layout, typography, button, utils, branding, DEFAULT_LOGO_URL } from './shared-styles'
 
 interface PasswordResetEmailProps {
   resetLink: string
+  logoUrl?: string
 }
 
-const LOGO_URL = 'https://quackback.io/logo.png'
-
-export function PasswordResetEmail({ resetLink }: PasswordResetEmailProps) {
+export function PasswordResetEmail({ resetLink, logoUrl }: PasswordResetEmailProps) {
   return (
     <Html>
       <Head />
@@ -28,7 +27,7 @@ export function PasswordResetEmail({ resetLink }: PasswordResetEmailProps) {
         <Container style={layout.container}>
           {/* Logo */}
           <Section style={branding.logoContainer}>
-            <Img src={LOGO_URL} alt="Quackback" style={branding.logo} />
+            <Img src={logoUrl ?? DEFAULT_LOGO_URL} alt="Quackback" style={branding.logo} />
           </Section>
 
           {/* Content */}

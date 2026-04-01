@@ -10,17 +10,16 @@ import {
   Section,
   Text,
 } from '@react-email/components'
-import { layout, typography, button, branding, colors } from './shared-styles'
+import { layout, typography, button, branding, colors, DEFAULT_LOGO_URL } from './shared-styles'
 
 interface WelcomeEmailProps {
   name: string
   workspaceName: string
   dashboardUrl: string
+  logoUrl?: string
 }
 
-const LOGO_URL = 'https://quackback.io/logo.png'
-
-export function WelcomeEmail({ name, workspaceName, dashboardUrl }: WelcomeEmailProps) {
+export function WelcomeEmail({ name, workspaceName, dashboardUrl, logoUrl }: WelcomeEmailProps) {
   return (
     <Html>
       <Head />
@@ -29,7 +28,7 @@ export function WelcomeEmail({ name, workspaceName, dashboardUrl }: WelcomeEmail
         <Container style={layout.container}>
           {/* Logo */}
           <Section style={branding.logoContainer}>
-            <Img src={LOGO_URL} alt="Quackback" style={branding.logo} />
+            <Img src={logoUrl ?? DEFAULT_LOGO_URL} alt={workspaceName} style={branding.logo} />
           </Section>
 
           {/* Content */}

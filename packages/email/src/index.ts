@@ -160,10 +160,11 @@ interface SendInvitationParams {
   inviteeName?: string
   workspaceName: string
   inviteLink: string
+  logoUrl?: string
 }
 
 export async function sendInvitationEmail(params: SendInvitationParams): Promise<EmailResult> {
-  const { to, invitedByName, inviteeName, workspaceName, inviteLink } = params
+  const { to, invitedByName, inviteeName, workspaceName, inviteLink, logoUrl } = params
 
   if (getProvider() === 'console') {
     console.log('\n┌────────────────────────────────────────────────────────────')
@@ -186,6 +187,7 @@ export async function sendInvitationEmail(params: SendInvitationParams): Promise
       inviteeName,
       organizationName: workspaceName,
       inviteLink,
+      logoUrl,
     }),
   })
 }
@@ -199,10 +201,11 @@ interface SendWelcomeParams {
   name: string
   workspaceName: string
   dashboardUrl: string
+  logoUrl?: string
 }
 
 export async function sendWelcomeEmail(params: SendWelcomeParams): Promise<EmailResult> {
-  const { to, name, workspaceName, dashboardUrl } = params
+  const { to, name, workspaceName, dashboardUrl, logoUrl } = params
 
   if (getProvider() === 'console') {
     console.log('\n┌────────────────────────────────────────────────────────────')
@@ -219,7 +222,7 @@ export async function sendWelcomeEmail(params: SendWelcomeParams): Promise<Email
   return sendEmail({
     to,
     subject: `Welcome to ${workspaceName} on Quackback!`,
-    react: WelcomeEmail({ name, workspaceName, dashboardUrl }),
+    react: WelcomeEmail({ name, workspaceName, dashboardUrl, logoUrl }),
   })
 }
 
@@ -230,10 +233,11 @@ export async function sendWelcomeEmail(params: SendWelcomeParams): Promise<Email
 interface SendSigninCodeParams {
   to: string
   code: string
+  logoUrl?: string
 }
 
 export async function sendSigninCodeEmail(params: SendSigninCodeParams): Promise<EmailResult> {
-  const { to, code } = params
+  const { to, code, logoUrl } = params
 
   if (getProvider() === 'console') {
     console.log('\n┌────────────────────────────────────────────────────────────')
@@ -249,7 +253,7 @@ export async function sendSigninCodeEmail(params: SendSigninCodeParams): Promise
   return sendEmail({
     to,
     subject: `Your Quackback sign-in code is ${code}`,
-    react: SigninCodeEmail({ code }),
+    react: SigninCodeEmail({ code, logoUrl }),
   })
 }
 
@@ -260,12 +264,13 @@ export async function sendSigninCodeEmail(params: SendSigninCodeParams): Promise
 interface SendPasswordResetParams {
   to: string
   resetLink: string
+  logoUrl?: string
 }
 
 export async function sendPasswordResetEmail(
   params: SendPasswordResetParams
 ): Promise<EmailResult> {
-  const { to, resetLink } = params
+  const { to, resetLink, logoUrl } = params
 
   if (getProvider() === 'console') {
     console.log('\n┌────────────────────────────────────────────────────────────')
@@ -281,7 +286,7 @@ export async function sendPasswordResetEmail(
   return sendEmail({
     to,
     subject: 'Reset your Quackback password',
-    react: PasswordResetEmail({ resetLink }),
+    react: PasswordResetEmail({ resetLink, logoUrl }),
   })
 }
 
@@ -297,11 +302,20 @@ interface SendStatusChangeParams {
   newStatus: string
   workspaceName: string
   unsubscribeUrl: string
+  logoUrl?: string
 }
 
 export async function sendStatusChangeEmail(params: SendStatusChangeParams): Promise<EmailResult> {
-  const { to, postTitle, postUrl, previousStatus, newStatus, workspaceName, unsubscribeUrl } =
-    params
+  const {
+    to,
+    postTitle,
+    postUrl,
+    previousStatus,
+    newStatus,
+    workspaceName,
+    unsubscribeUrl,
+    logoUrl,
+  } = params
 
   if (getProvider() === 'console') {
     console.log('\n┌────────────────────────────────────────────────────────────')
@@ -328,6 +342,7 @@ export async function sendStatusChangeEmail(params: SendStatusChangeParams): Pro
       newStatus,
       organizationName: workspaceName,
       unsubscribeUrl,
+      logoUrl,
     }),
   })
 }
@@ -345,6 +360,7 @@ interface SendNewCommentParams {
   isTeamMember: boolean
   workspaceName: string
   unsubscribeUrl: string
+  logoUrl?: string
 }
 
 export async function sendNewCommentEmail(params: SendNewCommentParams): Promise<EmailResult> {
@@ -357,6 +373,7 @@ export async function sendNewCommentEmail(params: SendNewCommentParams): Promise
     isTeamMember,
     workspaceName,
     unsubscribeUrl,
+    logoUrl,
   } = params
 
   if (getProvider() === 'console') {
@@ -384,6 +401,7 @@ export async function sendNewCommentEmail(params: SendNewCommentParams): Promise
       isTeamMember,
       organizationName: workspaceName,
       unsubscribeUrl,
+      logoUrl,
     }),
   })
 }
@@ -399,12 +417,21 @@ interface SendChangelogPublishedParams {
   contentPreview: string
   workspaceName: string
   unsubscribeUrl: string
+  logoUrl?: string
 }
 
 export async function sendChangelogPublishedEmail(
   params: SendChangelogPublishedParams
 ): Promise<EmailResult> {
-  const { to, changelogTitle, changelogUrl, contentPreview, workspaceName, unsubscribeUrl } = params
+  const {
+    to,
+    changelogTitle,
+    changelogUrl,
+    contentPreview,
+    workspaceName,
+    unsubscribeUrl,
+    logoUrl,
+  } = params
 
   if (getProvider() === 'console') {
     console.log('\n┌────────────────────────────────────────────────────────────')
@@ -428,6 +455,7 @@ export async function sendChangelogPublishedEmail(
       contentPreview,
       organizationName: workspaceName,
       unsubscribeUrl,
+      logoUrl,
     }),
   })
 }
@@ -444,13 +472,22 @@ interface SendFeedbackLinkedParams {
   workspaceName: string
   unsubscribeUrl: string
   attributedByName?: string
+  logoUrl?: string
 }
 
 export async function sendFeedbackLinkedEmail(
   params: SendFeedbackLinkedParams
 ): Promise<EmailResult> {
-  const { to, recipientName, postTitle, postUrl, workspaceName, unsubscribeUrl, attributedByName } =
-    params
+  const {
+    to,
+    recipientName,
+    postTitle,
+    postUrl,
+    workspaceName,
+    unsubscribeUrl,
+    attributedByName,
+    logoUrl,
+  } = params
 
   if (getProvider() === 'console') {
     console.log('\n┌────────────────────────────────────────────────────────────')
@@ -476,6 +513,7 @@ export async function sendFeedbackLinkedEmail(
       workspaceName,
       unsubscribeUrl,
       attributedByName,
+      logoUrl,
     }),
   })
 }

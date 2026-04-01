@@ -9,15 +9,14 @@ import {
   Section,
   Text,
 } from '@react-email/components'
-import { layout, typography, utils, branding } from './shared-styles'
+import { layout, typography, utils, branding, DEFAULT_LOGO_URL } from './shared-styles'
 
 interface SigninCodeEmailProps {
   code: string
+  logoUrl?: string
 }
 
-const LOGO_URL = 'https://quackback.io/logo.png'
-
-export function SigninCodeEmail({ code }: SigninCodeEmailProps) {
+export function SigninCodeEmail({ code, logoUrl }: SigninCodeEmailProps) {
   return (
     <Html>
       <Head />
@@ -26,7 +25,7 @@ export function SigninCodeEmail({ code }: SigninCodeEmailProps) {
         <Container style={layout.container}>
           {/* Logo */}
           <Section style={branding.logoContainer}>
-            <Img src={LOGO_URL} alt="Quackback" style={branding.logo} />
+            <Img src={logoUrl ?? DEFAULT_LOGO_URL} alt="Quackback" style={branding.logo} />
           </Section>
 
           {/* Content */}

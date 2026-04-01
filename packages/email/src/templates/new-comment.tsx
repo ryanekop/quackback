@@ -11,7 +11,15 @@ import {
   Section,
   Text,
 } from '@react-email/components'
-import { layout, typography, button, utils, branding, colors } from './shared-styles'
+import {
+  layout,
+  typography,
+  button,
+  utils,
+  branding,
+  colors,
+  DEFAULT_LOGO_URL,
+} from './shared-styles'
 
 interface NewCommentEmailProps {
   postTitle: string
@@ -21,9 +29,8 @@ interface NewCommentEmailProps {
   isTeamMember: boolean
   organizationName: string
   unsubscribeUrl: string
+  logoUrl?: string
 }
-
-const LOGO_URL = 'https://quackback.io/logo.png'
 
 export function NewCommentEmail({
   postTitle,
@@ -33,6 +40,7 @@ export function NewCommentEmail({
   isTeamMember,
   organizationName,
   unsubscribeUrl,
+  logoUrl,
 }: NewCommentEmailProps) {
   return (
     <Html>
@@ -42,7 +50,7 @@ export function NewCommentEmail({
         <Container style={layout.container}>
           {/* Logo */}
           <Section style={branding.logoContainer}>
-            <Img src={LOGO_URL} alt="Quackback" style={branding.logo} />
+            <Img src={logoUrl ?? DEFAULT_LOGO_URL} alt={organizationName} style={branding.logo} />
           </Section>
 
           {/* Content */}
