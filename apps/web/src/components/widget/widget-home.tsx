@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, memo, useRef, useState } from 'react'
 import { Squares2X2Icon, PencilIcon } from '@heroicons/react/24/solid'
 import {
   LightBulbIcon,
@@ -21,6 +21,10 @@ import { useInfiniteScroll } from '@/lib/client/hooks/use-infinite-scroll'
 import { WidgetVoteButton } from './widget-vote-button'
 import { useWidgetAuth } from './widget-auth-provider'
 import type { PostId } from '@quackback/ids'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
+import { useWidgetImageUpload } from '@/lib/client/hooks/use-image-upload'
+import type { JSONContent } from '@tiptap/react'
+import type { TiptapContent } from '@/lib/shared/schemas/posts'
 
 interface WidgetPost {
   id: string
@@ -58,6 +62,7 @@ interface WidgetHomeProps {
   }) => void
   anonymousVotingEnabled?: boolean
   anonymousPostingEnabled?: boolean
+  imageUploadsInWidget?: boolean
 }
 
 interface SearchResult {
@@ -71,77 +76,85 @@ const identityInputCls =
 
 // ── Shared post row used in both similar-posts and popular-ideas lists ──
 
-function WidgetPostRow({
-  post,
-  statusMap,
-  showBoard,
-  compact,
-  canVote,
-  ensureSessionThen,
-  onAuthRequired,
-  onSelect,
-}: {
-  post: WidgetPost
-  statusMap: Map<string, StatusInfo>
-  showBoard?: boolean
-  compact?: boolean
-  canVote: boolean
-  ensureSessionThen: (callback: () => void | Promise<void>) => Promise<void>
-  onAuthRequired?: () => void
-  onSelect?: () => void
-}) {
-  const status = post.statusId ? (statusMap.get(post.statusId) ?? null) : null
-  return (
-    <div
-      className={`w-full overflow-hidden flex items-center gap-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer ${compact ? 'px-1.5 py-1' : 'px-2 py-1.5'}`}
-      onClick={onSelect}
-    >
-      <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-        <WidgetVoteButton
-          postId={post.id as PostId}
-          voteCount={post.voteCount}
-          compact={compact}
-          onBeforeVote={
-            canVote
-              ? async () => {
-                  let success = false
-                  await ensureSessionThen(() => {
-                    success = true
-                  })
-                  return success
-                }
-              : undefined
-          }
-          onAuthRequired={!canVote ? onAuthRequired : undefined}
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          {status && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-              <span
-                className="size-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: status.color }}
-              />
-              {status.name}
-            </span>
-          )}
-          {showBoard && post.board && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/60">
-              <Squares2X2Icon className="h-2.5 w-2.5 text-muted-foreground/40" />
-              {post.board.name}
-            </span>
-          )}
+const WidgetPostRow = memo(
+  function WidgetPostRow({
+    post,
+    statusMap,
+    showBoard,
+    compact,
+    canVote,
+    ensureSessionThen,
+    onAuthRequired,
+    onSelect,
+  }: {
+    post: WidgetPost
+    statusMap: Map<string, StatusInfo>
+    showBoard?: boolean
+    compact?: boolean
+    canVote: boolean
+    ensureSessionThen: (callback: () => void | Promise<void>) => Promise<void>
+    onAuthRequired?: () => void
+    onSelect?: () => void
+  }) {
+    const status = post.statusId ? (statusMap.get(post.statusId) ?? null) : null
+    return (
+      <div
+        className={`w-full overflow-hidden flex items-center gap-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer ${compact ? 'px-1.5 py-1' : 'px-2 py-1.5'}`}
+        onClick={onSelect}
+      >
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+          <WidgetVoteButton
+            postId={post.id as PostId}
+            voteCount={post.voteCount}
+            compact={compact}
+            onBeforeVote={
+              canVote
+                ? async () => {
+                    let success = false
+                    await ensureSessionThen(() => {
+                      success = true
+                    })
+                    return success
+                  }
+                : undefined
+            }
+            onAuthRequired={!canVote ? onAuthRequired : undefined}
+          />
         </div>
-        <p
-          className={`font-medium text-foreground line-clamp-1 ${compact ? 'text-xs' : 'text-sm'}`}
-        >
-          {post.title}
-        </p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            {status && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                <span
+                  className="size-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: status.color }}
+                />
+                {status.name}
+              </span>
+            )}
+            {showBoard && post.board && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground/60">
+                <Squares2X2Icon className="h-2.5 w-2.5 text-muted-foreground/40" />
+                {post.board.name}
+              </span>
+            )}
+          </div>
+          <p
+            className={`font-medium text-foreground line-clamp-1 ${compact ? 'text-xs' : 'text-sm'}`}
+          >
+            {post.title}
+          </p>
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  },
+  (prev, next) =>
+    prev.post === next.post &&
+    prev.statusMap === next.statusMap &&
+    prev.showBoard === next.showBoard &&
+    prev.compact === next.compact &&
+    prev.canVote === next.canVote
+)
 
 function usePillsScroll() {
   const ref = useRef<HTMLDivElement>(null)
@@ -188,6 +201,7 @@ export function WidgetHome({
   onPostCreated,
   anonymousVotingEnabled = true,
   anonymousPostingEnabled = false,
+  imageUploadsInWidget = true,
 }: WidgetHomeProps) {
   const {
     ensureSession,
@@ -199,6 +213,8 @@ export function WidgetHome({
     metadata,
     identifyWithEmail,
   } = useWidgetAuth()
+  const { upload: uploadImage } = useWidgetImageUpload()
+  const canUploadImages = isIdentified && imageUploadsInWidget
   const inputRef = useRef<HTMLInputElement>(null)
   const canVote = isIdentified || anonymousVotingEnabled
   const canPost = isIdentified || anonymousPostingEnabled
@@ -207,7 +223,12 @@ export function WidgetHome({
   const [title, setTitle] = useState('')
   const [expanded, setExpanded] = useState(false)
   const [selectedBoardId, setSelectedBoardId] = useState(boards[0]?.id ?? '')
-  const [content, setContent] = useState('')
+  const [contentJson, setContentJson] = useState<JSONContent | null>(null)
+  const [contentHtml, setContentHtml] = useState('')
+  const handleEditorChange = useCallback((json: JSONContent, html: string) => {
+    setContentJson(json)
+    setContentHtml(html)
+  }, [])
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -365,7 +386,8 @@ export function WidgetHome({
   function collapseForm() {
     setExpanded(false)
     setTitle('')
-    setContent('')
+    setContentJson(null)
+    setContentHtml('')
     setEmail('')
     setName('')
     setError(null)
@@ -413,7 +435,8 @@ export function WidgetHome({
         data: {
           boardId: selectedBoardId,
           title: title.trim(),
-          content: content.trim(),
+          content: contentHtml.trim(),
+          contentJson: (contentJson ?? undefined) as TiptapContent | undefined,
           metadata: metadata ?? undefined,
         },
         headers: getWidgetAuthHeaders(),
@@ -513,7 +536,7 @@ export function WidgetHome({
                   const val = e.target.value
                   setTitle(val)
                   if (val && !expanded) setExpanded(true)
-                  if (!val && expanded && !content.trim()) setExpanded(false)
+                  if (!val && expanded && !contentHtml.trim()) setExpanded(false)
                 }}
                 onFocus={() => {
                   if (title && !expanded) setExpanded(true)
@@ -543,13 +566,26 @@ export function WidgetHome({
                     transition={{ duration: 0.2, delay: 0.1 }}
                     className="px-3 pb-2"
                   >
-                    <textarea
+                    <RichTextEditor
+                      value={contentJson || ''}
+                      onChange={handleEditorChange}
                       placeholder="Add more details..."
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      maxLength={10000}
-                      rows={3}
-                      className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 border-0 outline-none caret-primary resize-none leading-relaxed"
+                      minHeight="80px"
+                      borderless
+                      features={{
+                        headings: true,
+                        codeBlocks: true,
+                        taskLists: true,
+                        blockquotes: true,
+                        dividers: true,
+                        tables: true,
+                        images: canUploadImages,
+                        embeds: true,
+                        bubbleMenu: true,
+                        slashMenu: true,
+                      }}
+                      onImageUpload={canUploadImages ? uploadImage : undefined}
+                      className="text-sm"
                     />
                   </motion.div>
 
