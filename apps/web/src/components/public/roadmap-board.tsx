@@ -100,10 +100,7 @@ export function RoadmapBoard({
       />
 
       {effectiveSelectedId && (
-        <ScrollArea
-          className="w-full"
-          style={{ height: 'calc(100dvh - 3.5rem - 2rem - 4.5rem - 3rem)' }}
-        >
+        <ScrollArea className="w-full" style={{ height: 'calc(100dvh - 13rem)' }}>
           <div className="flex gap-4 pb-4 h-full">
             {statuses.map((status, index) => (
               <div

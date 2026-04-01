@@ -103,7 +103,7 @@ export function FeedbackToolbar({
               <span className="hidden sm:inline">Search</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80" align="end">
+          <PopoverContent className="max-w-[calc(100vw-2rem)] sm:w-80" align="end">
             <form onSubmit={handleSearchSubmit} className="flex gap-2">
               <Input
                 placeholder="Search posts..."

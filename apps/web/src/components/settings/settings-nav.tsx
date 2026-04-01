@@ -11,7 +11,7 @@ export function SettingsNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   return (
-    <nav className="w-56 shrink-0">
+    <nav className="w-full md:w-56 md:shrink-0">
       <div className="sticky top-6 bg-card border border-border/50 rounded-lg p-4 shadow-sm">
         <h3 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2 px-3">
           Personal

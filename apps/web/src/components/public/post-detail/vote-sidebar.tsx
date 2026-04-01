@@ -5,7 +5,7 @@ import { portalDetailQueries } from '@/lib/client/queries/portal-detail'
 import type { PostId } from '@quackback/ids'
 
 const SIDEBAR_CLASS =
-  'flex flex-col items-center justify-start py-6 px-4 border-r !border-r-[rgba(0,0,0,0.05)] dark:!border-r-[rgba(255,255,255,0.06)] bg-muted/10'
+  'flex flex-col items-center justify-start py-3 px-2 sm:py-6 sm:px-4 border-r !border-r-[rgba(0,0,0,0.05)] dark:!border-r-[rgba(255,255,255,0.06)] bg-muted/10'
 
 export function VoteSidebarSkeleton(): React.ReactElement {
   return (
