@@ -704,7 +704,7 @@ export function WidgetHome({
 
           {/* Popular ideas */}
           <div className="mt-2">
-            <div className="flex items-center justify-between px-1 py-1.5">
+            <div className="flex items-center justify-between px-1 h-7">
               {popularSearchOpen ? (
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   <MagnifyingGlassIcon className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
@@ -713,8 +713,11 @@ export function WidgetHome({
                     type="text"
                     value={popularSearch}
                     onChange={(e) => setPopularSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.preventDefault()
+                    }}
                     placeholder="Search ideas..."
-                    className="flex-1 min-w-0 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 outline-none"
+                    className="flex-1 min-w-0 h-5 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 outline-none"
                   />
                   <button
                     type="button"
