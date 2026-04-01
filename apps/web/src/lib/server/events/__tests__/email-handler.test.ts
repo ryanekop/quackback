@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 vi.mock('@quackback/email', () => ({
   sendStatusChangeEmail: vi.fn(),
   sendNewCommentEmail: vi.fn(),
+  sendChangelogPublishedEmail: vi.fn(),
 }))
 
 import { emailHook } from '../handlers/email'
@@ -45,6 +46,7 @@ const baseConfig = {
   workspaceName: 'TestWorkspace',
   postUrl: 'https://example.com/post/1',
   postTitle: 'Test Post',
+  logoUrl: 'https://example.com/logo.png',
 } satisfies EmailConfig
 
 describe('emailHook', () => {
@@ -67,6 +69,7 @@ describe('emailHook', () => {
         newStatus: 'in_progress',
         workspaceName: 'TestWorkspace',
         unsubscribeUrl: 'https://example.com/unsubscribe',
+        logoUrl: 'https://example.com/logo.png',
       })
     })
 
@@ -90,6 +93,7 @@ describe('emailHook', () => {
         isTeamMember: true,
         workspaceName: 'TestWorkspace',
         unsubscribeUrl: 'https://example.com/unsubscribe',
+        logoUrl: 'https://example.com/logo.png',
       })
     })
   })
