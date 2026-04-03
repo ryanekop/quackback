@@ -1,86 +1,104 @@
-# Quackback Data Import System
+# Quackback Data Import
 
-Import data from third-party feedback platforms (UserVoice, Canny, Featurebase, etc.) into Quackback.
+Import data from Canny, UserVoice, or CSV files into Quackback via the REST API.
 
 ## Architecture
 
-The import system uses an intermediate format approach for maximum flexibility:
+All imports go through the Quackback REST API — no direct database access needed.
 
 ```
-Source Export (UserVoice, Canny, etc.)
+Source (Canny API / UserVoice CSV / Generic CSV)
          │
          ▼
     ┌─────────────┐
-    │   Adapter   │  ← Source-specific: parses native format
+    │   Adapter    │  ← Source-specific: fetches/parses native format
     └─────────────┘
          │
          ▼
     ┌─────────────┐
-    │ Intermediate│  ← Standardized format
-    │   Format    │     (posts, comments, votes, notes)
+    │ Intermediate │  ← Standardized format
+    │   Format     │    (posts, comments, votes, notes, changelogs)
     └─────────────┘
          │
          ▼
     ┌─────────────┐
-    │  Importer   │  ← Generic: writes to database
+    │ API Importer │  ← Generic: pushes to Quackback REST API
     └─────────────┘
          │
          ▼
-      Quackback DB
+    Quackback API
 ```
 
 ## Quick Start
 
 ```bash
-# Import from UserVoice
-bun run import uservoice \
-  --suggestions ~/Downloads/full-export.csv \
-  --comments ~/Downloads/comments.csv \
-  --board features
+# Import from Canny
+bun scripts/import/cli.ts canny \
+  --api-key YOUR_CANNY_API_KEY \
+  --quackback-url https://feedback.yourapp.com \
+  --quackback-key qb_xxx \
+  --verbose
 
-# Import from intermediate format
-bun run import intermediate \
+# Import from UserVoice
+bun scripts/import/cli.ts uservoice \
+  --suggestions ~/Downloads/full-export.csv \
+  --quackback-url https://feedback.yourapp.com \
+  --quackback-key qb_xxx \
+  --verbose
+
+# Import from CSV
+bun scripts/import/cli.ts intermediate \
   --posts data/posts.csv \
   --comments data/comments.csv \
-  --board features
+  --board features \
+  --quackback-url https://feedback.yourapp.com \
+  --quackback-key qb_xxx
 ```
 
 ## Prerequisites
 
-1. **Database**: Ensure `DATABASE_URL` is set in your `.env` file
-2. **Target Board**: The board must exist before importing (use the admin UI to create it)
-3. **Source Files**: Export files from your source platform
+1. **Quackback API key**: Create one in **Admin → Settings → API Keys**
+2. **Quackback URL**: Your instance URL (e.g., `https://feedback.yourapp.com`)
+3. **Boards**: Create target boards in the admin UI before importing
+
+You can set these as environment variables instead of CLI flags:
+
+```bash
+export QUACKBACK_URL=https://feedback.yourapp.com
+export QUACKBACK_API_KEY=qb_xxx
+export CANNY_API_KEY=your_canny_key  # for Canny imports
+```
 
 ## CLI Reference
 
 ### Commands
 
-| Command        | Description                         |
-| -------------- | ----------------------------------- |
-| `intermediate` | Import from intermediate CSV format |
-| `uservoice`    | Import from UserVoice export files  |
-| `help`         | Show help message                   |
+| Command        | Description                        |
+| -------------- | ---------------------------------- |
+| `canny`        | Import from Canny via their API    |
+| `uservoice`    | Import from UserVoice export files |
+| `intermediate` | Import from generic CSV files      |
+| `help`         | Show help message                  |
+
+### Required Options (all commands)
+
+| Option            | Description             | Env var             |
+| ----------------- | ----------------------- | ------------------- |
+| `--quackback-url` | Quackback instance URL  | `QUACKBACK_URL`     |
+| `--quackback-key` | Quackback admin API key | `QUACKBACK_API_KEY` |
 
 ### Common Options
 
-| Option             | Description                       | Default |
-| ------------------ | --------------------------------- | ------- |
-| `--board <slug>`   | Target board slug (required)      | -       |
-| `--dry-run`        | Validate only, don't insert data  | false   |
-| `--verbose`        | Show detailed progress            | false   |
-| `--create-tags`    | Auto-create missing tags          | true    |
-| `--no-create-tags` | Don't create missing tags         | -       |
-| `--create-users`   | Create members for unknown emails | false   |
-| `--batch-size <n>` | Batch size for inserts            | 100     |
+| Option      | Description                      | Default |
+| ----------- | -------------------------------- | ------- |
+| `--dry-run` | Validate only, don't insert data | false   |
+| `--verbose` | Show detailed progress           | false   |
 
-### Intermediate Format Options
+### Canny Options
 
-| Option              | Description             |
-| ------------------- | ----------------------- |
-| `--posts <file>`    | Posts CSV file          |
-| `--comments <file>` | Comments CSV file       |
-| `--votes <file>`    | Votes CSV file          |
-| `--notes <file>`    | Internal notes CSV file |
+| Option      | Description   | Env var         |
+| ----------- | ------------- | --------------- |
+| `--api-key` | Canny API key | `CANNY_API_KEY` |
 
 ### UserVoice Options
 
@@ -89,10 +107,99 @@ bun run import intermediate \
 | `--suggestions <file>` | Full suggestions export CSV (required) |
 | `--comments <file>`    | Comments CSV (optional)                |
 | `--notes <file>`       | Internal notes CSV (optional)          |
+| `--users <file>`       | Subdomain users CSV (optional)         |
 
-## Intermediate Format
+### Intermediate Format Options
 
-The intermediate format is a set of CSV files with standardized columns. This allows importing from any source by converting to this format first.
+| Option              | Description             |
+| ------------------- | ----------------------- |
+| `--board <slug>`    | Target board slug       |
+| `--posts <file>`    | Posts CSV file          |
+| `--comments <file>` | Comments CSV file       |
+| `--votes <file>`    | Votes CSV file          |
+| `--notes <file>`    | Internal notes CSV file |
+
+## Canny Import
+
+The Canny adapter connects directly to the Canny API and fetches everything automatically.
+
+### What gets imported
+
+- **Boards** — mapped to Quackback boards by name
+- **Posts** — titles, descriptions, statuses, images, creation dates
+- **Comments** — threaded, with internal comments routed to private notes
+- **Votes** — individual voter attribution via proxy voting
+- **Tags & categories** — Canny categories imported as tags
+- **Changelog entries** — with linked post relationships preserved
+- **Merge relationships** — chains resolved and replayed (A→B→C becomes A→C)
+- **Users** — collected from all entities, identified by email
+
+### Status mapping
+
+| Canny Status | Quackback Status |
+| ------------ | ---------------- |
+| open         | open             |
+| under review | under_review     |
+| planned      | planned          |
+| in progress  | in_progress      |
+| complete     | complete         |
+| closed       | closed           |
+
+### Example
+
+```bash
+# Dry run first
+bun scripts/import/cli.ts canny \
+  --api-key YOUR_CANNY_API_KEY \
+  --quackback-url https://feedback.yourapp.com \
+  --quackback-key qb_xxx \
+  --dry-run --verbose
+
+# Run the import
+bun scripts/import/cli.ts canny \
+  --api-key YOUR_CANNY_API_KEY \
+  --quackback-url https://feedback.yourapp.com \
+  --quackback-key qb_xxx \
+  --verbose
+```
+
+## UserVoice Import
+
+UserVoice provides a full denormalized export where each row represents an idea + voter relationship. The adapter deduplicates automatically.
+
+### Export files
+
+1. **Full suggestions export** (required): The denormalized CSV
+2. **comments.csv** (optional): Public comments
+3. **notes.csv** (optional): Internal staff notes
+4. **users.csv** (optional): Subdomain users
+
+### Status mapping
+
+| UserVoice Status      | Quackback Status |
+| --------------------- | ---------------- |
+| active                | open             |
+| under review          | under_review     |
+| planned               | planned          |
+| started / in progress | in_progress      |
+| completed / shipped   | complete         |
+| declined / closed     | closed           |
+
+### Example
+
+```bash
+bun scripts/import/cli.ts uservoice \
+  --suggestions ~/Downloads/uservoice-full-export.csv \
+  --comments ~/Downloads/comments.csv \
+  --notes ~/Downloads/notes.csv \
+  --quackback-url https://feedback.yourapp.com \
+  --quackback-key qb_xxx \
+  --verbose
+```
+
+## Intermediate CSV Format
+
+Import from any source by converting to these CSV files first.
 
 ### posts.csv
 
@@ -103,16 +210,12 @@ The intermediate format is a set of CSV files with standardized columns. This al
 | `body`         | ✓        | Content (plain text or HTML)             |
 | `author_email` |          | Author email address                     |
 | `author_name`  |          | Author display name                      |
-| `board`        |          | Board slug (ignored, uses --board)       |
+| `board`        |          | Board slug (or use `--board` flag)       |
 | `status`       |          | Status slug (open, planned, etc.)        |
 | `moderation`   |          | published/pending/spam/archived          |
 | `tags`         |          | Comma-separated tag names                |
-| `roadmap`      |          | Roadmap slug                             |
 | `vote_count`   |          | Fallback vote count                      |
 | `created_at`   |          | ISO 8601 timestamp                       |
-| `response`     |          | Official response text                   |
-| `response_at`  |          | Response timestamp                       |
-| `response_by`  |          | Response author email                    |
 
 ### comments.csv
 
@@ -135,8 +238,6 @@ The intermediate format is a set of CSV files with standardized columns. This al
 
 ### notes.csv
 
-Internal staff notes (not visible to public users).
-
 | Column         | Required | Description        |
 | -------------- | -------- | ------------------ |
 | `post_id`      | ✓        | External post ID   |
@@ -145,82 +246,22 @@ Internal staff notes (not visible to public users).
 | `author_name`  |          | Staff name         |
 | `created_at`   |          | ISO 8601 timestamp |
 
-## UserVoice Import
-
-UserVoice provides a full denormalized export where each row represents an idea + voter relationship. The adapter handles deduplication automatically.
-
-### Export Files
-
-1. **Full Suggestions Export** (required): The denormalized CSV with 115 fields
-2. **comments.csv** (optional): Public comments
-3. **notes.csv** (optional): Internal staff notes
-
-### Status Mapping
-
-| UserVoice Status      | Quackback Status |
-| --------------------- | ---------------- |
-| active                | open             |
-| under review          | under_review     |
-| planned               | planned          |
-| started / in progress | in_progress      |
-| completed / shipped   | complete         |
-| declined / closed     | closed           |
-
-### Example
-
-```bash
-# Full import with all data
-bun run import uservoice \
-  --suggestions ~/Downloads/uservoice-full-export.csv \
-  --comments ~/Downloads/comments.csv \
-  --notes ~/Downloads/notes.csv \
-  --board features \
-  --verbose
-
-# Dry run to validate first
-bun run import uservoice \
-  --suggestions ~/Downloads/uservoice-full-export.csv \
-  --board features \
-  --dry-run --verbose
-```
-
 ## Adding New Adapters
 
-To support a new source platform:
-
-1. Create a new adapter directory: `scripts/import/adapters/canny/`
-2. Implement the conversion to intermediate format
-3. Export a `convert<Platform>()` function
-4. Add a new command to `cli.ts`
-
-### Adapter Structure
-
-```
-adapters/
-└── newplatform/
-    ├── index.ts        # Exports
-    ├── adapter.ts      # Main conversion logic
-    ├── field-map.ts    # Field mappings
-    └── README.md       # Platform-specific docs
-```
-
-### Conversion Function
+1. Create `scripts/import/adapters/<platform>/`
+2. Implement a `convert<Platform>()` function that returns `IntermediateData`
+3. Add a new command to `cli.ts` that calls the adapter then `runApiImport()`
 
 ```typescript
 import type { IntermediateData } from '../../schema/types'
 
-interface NewPlatformOptions {
-  exportFile: string
-  verbose?: boolean
-}
-
-export function convertNewPlatform(options: NewPlatformOptions): {
+export function convertNewPlatform(options: { /* ... */ }): {
   data: IntermediateData
   stats: {
-    /* conversion stats */
+    /* ... */
   }
 } {
-  // 1. Parse the platform's export files
+  // 1. Parse/fetch the platform's data
   // 2. Convert to intermediate format
   // 3. Return data and stats
 }
@@ -228,37 +269,28 @@ export function convertNewPlatform(options: NewPlatformOptions): {
 
 ## Troubleshooting
 
-### "Board not found"
+### "Board not found" / posts skipped
 
-The target board must exist before importing. Create it in the admin UI first.
+The target board must exist before importing. Create boards in the admin UI first, then ensure the board names or slugs in your source data match.
 
-### "DATABASE_URL is required"
+### Vote counts don't match source
 
-Ensure your `.env` file contains a valid `DATABASE_URL`:
+Votes are imported as individual proxy votes per user email. If the source has more votes than voter emails in the export, the count will differ.
 
-```
-DATABASE_URL=postgresql://user:pass@localhost:5432/quackback
-```
+### Dry run first
 
-### Vote counts don't match
-
-Vote counts are reconciled after import based on actual vote records. If you have more votes in the original system than voter emails in the export, the count will differ.
-
-### Missing tags
-
-By default, missing tags are auto-created. Use `--no-create-tags` to skip unknown tags instead.
-
-### Import is slow
-
-Try adjusting `--batch-size`. Larger batches are faster but use more memory:
+Always validate before importing:
 
 ```bash
-bun run import intermediate --posts posts.csv --board features --batch-size 500
+bun scripts/import/cli.ts canny --api-key KEY \
+  --quackback-url URL --quackback-key KEY \
+  --dry-run --verbose
 ```
 
 ## Data Safety
 
-- Always run with `--dry-run` first to validate data
-- The import is additive - it won't delete existing posts
-- Duplicate votes (same user + post) are skipped automatically
-- Posts are created with their original timestamps when provided
+- Always run with `--dry-run` first to validate
+- Imports are additive — existing posts are not deleted
+- Duplicate votes (same user + post) are skipped
+- Posts keep their original timestamps when provided
+- The API importer retries on rate limits and server errors with exponential backoff
