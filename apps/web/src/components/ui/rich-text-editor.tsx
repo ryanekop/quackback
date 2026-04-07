@@ -910,6 +910,21 @@ function RichTextEditorBase({
     editor,
   })
 
+  // Ref for finding the nearest dialog content to append bubble menus to.
+  // Appending to the dialog (instead of document.body) keeps the menu inside
+  // Radix's focus-trap so clicks still work, while escaping ScrollArea overflow.
+  const containerRef = useRef<HTMLDivElement>(null)
+  const getBubbleMenuContainer = useCallback(() => {
+    const dialogContent = containerRef.current?.closest<HTMLElement>('[data-slot="dialog-content"]')
+    return dialogContent ?? document.body
+  }, [])
+  const bubbleMenuRef = useCallback((el: HTMLDivElement | null) => {
+    if (el) {
+      el.style.zIndex = '99'
+      el.style.overflow = 'visible'
+    }
+  }, [])
+
   if (!editor) {
     return null
   }
@@ -920,6 +935,7 @@ function RichTextEditorBase({
     <ContextMenu>
       <ContextMenuTrigger asChild disabled={!features.images}>
         <div
+          ref={containerRef}
           className={cn(
             !borderless && 'overflow-hidden rounded-md border border-input bg-background',
             disabled && 'opacity-50 cursor-not-allowed',
@@ -969,7 +985,10 @@ function RichTextEditorBase({
       {features.bubbleMenu !== false && (
         <BubbleMenu
           editor={editor}
+          appendTo={getBubbleMenuContainer}
+          ref={bubbleMenuRef}
           options={{
+            strategy: 'fixed',
             placement: 'top',
           }}
           shouldShow={({ editor, state }) => {
@@ -988,7 +1007,10 @@ function RichTextEditorBase({
       {features.tables && (
         <BubbleMenu
           editor={editor}
+          appendTo={getBubbleMenuContainer}
+          ref={bubbleMenuRef}
           options={{
+            strategy: 'fixed',
             placement: 'top',
           }}
           shouldShow={({ editor }) => {
@@ -1002,7 +1024,10 @@ function RichTextEditorBase({
       {features.images && (
         <BubbleMenu
           editor={editor}
+          appendTo={getBubbleMenuContainer}
+          ref={bubbleMenuRef}
           options={{
+            strategy: 'fixed',
             placement: 'top',
           }}
           shouldShow={({ editor }) => {
@@ -1359,7 +1384,13 @@ function HeadingDropdown({ editor, disabled }: { editor: Editor; disabled: boole
           <ChevronDown className="size-3" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side="top" sideOffset={8} disablePortal>
+      <DropdownMenuContent
+        align="start"
+        side="bottom"
+        sideOffset={8}
+        avoidCollisions={false}
+        disablePortal
+      >
         {blockTypes.map((type) => (
           <DropdownMenuItem
             key={type.value}
