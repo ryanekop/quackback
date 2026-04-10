@@ -596,26 +596,31 @@ export function MetadataSidebar({
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-40 p-1" align="end" sideOffset={4}>
-                    <div className="max-h-48 overflow-y-auto space-y-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent">
-                      {availableTags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          type="button"
-                          onClick={() => handleAddTag(tag.id as TagId)}
-                          className={cn(
-                            'w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md',
-                            'text-foreground/80 hover:text-foreground hover:bg-muted/60',
-                            'transition-all duration-100 text-start font-medium'
-                          )}
-                        >
-                          <span
-                            className="h-2.5 w-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: tag.color }}
-                          />
-                          {tag.name}
-                        </button>
-                      ))}
-                    </div>
+                    <ScrollArea
+                      className="[&_[data-slot=scroll-area-viewport]]:max-h-48"
+                      scrollBarClassName="w-1.5"
+                    >
+                      <div className="space-y-0.5">
+                        {availableTags.map((tag) => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => handleAddTag(tag.id as TagId)}
+                            className={cn(
+                              'w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md',
+                              'text-foreground/80 hover:text-foreground hover:bg-muted/60',
+                              'transition-all duration-100 text-start font-medium'
+                            )}
+                          >
+                            <span
+                              className="h-2.5 w-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: tag.color }}
+                            />
+                            {tag.name}
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   </PopoverContent>
                 </Popover>
               )}

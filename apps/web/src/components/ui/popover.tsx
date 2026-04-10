@@ -3,22 +3,71 @@ import * as PopoverPrimitive from '@radix-ui/react-popover'
 
 import { cn } from '@/lib/shared/utils'
 
+/**
+ * When a Popover is inside a Dialog, we portal to the dialog content element
+ * instead of document.body. This keeps the popover inside react-remove-scroll's
+ * boundary so wheel events work on scrollable content inside the popover.
+ */
+const PortalContainerContext = React.createContext<{
+  container: HTMLElement | null
+  setTriggerEl: (el: HTMLElement | null) => void
+}>({ container: null, setTriggerEl: () => {} })
+
 function Popover({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />
+  const [container, setContainer] = React.useState<HTMLElement | null>(null)
+
+  const setTriggerEl = React.useCallback((el: HTMLElement | null) => {
+    if (!el) return
+    const dialog = el.closest<HTMLElement>('[data-slot="dialog-content"]')
+    setContainer(dialog)
+  }, [])
+
+  const ctx = React.useMemo(() => ({ container, setTriggerEl }), [container, setTriggerEl])
+
+  return (
+    <PortalContainerContext.Provider value={ctx}>
+      <PopoverPrimitive.Root data-slot="popover" {...props} />
+    </PortalContainerContext.Provider>
+  )
 }
 
-function PopoverTrigger({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
-  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
+function PopoverTrigger({
+  ref: externalRef,
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
+  const { setTriggerEl } = React.useContext(PortalContainerContext)
+  const internalRef = React.useRef<HTMLButtonElement>(null)
+
+  React.useEffect(() => {
+    setTriggerEl(internalRef.current)
+  }, [setTriggerEl])
+
+  return (
+    <PopoverPrimitive.Trigger
+      data-slot="popover-trigger"
+      ref={(node) => {
+        internalRef.current = node
+        if (typeof externalRef === 'function') externalRef(node)
+        else if (externalRef)
+          (externalRef as React.MutableRefObject<HTMLButtonElement | null>).current = node
+      }}
+      {...props}
+    />
+  )
 }
 
 function PopoverContent({
   className,
   align = 'center',
   sideOffset = 4,
+  container: containerProp,
   ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
+}: React.ComponentProps<typeof PopoverPrimitive.Content> & { container?: HTMLElement | null }) {
+  const { container: dialogContainer } = React.useContext(PortalContainerContext)
+  const portalContainer = containerProp ?? dialogContainer ?? undefined
+
   return (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal container={portalContainer}>
       <PopoverPrimitive.Content
         data-slot="popover-content"
         align={align}
