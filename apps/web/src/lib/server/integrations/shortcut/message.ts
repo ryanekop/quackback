@@ -4,6 +4,7 @@
 
 import type { EventData } from '../../events/types'
 import { stripHtml, truncate } from '../../events/hook-utils'
+import { getAuthorName, buildPostUrl } from '../message-utils'
 
 /**
  * Build a Shortcut story title and description from a post.created event.
@@ -18,9 +19,9 @@ export function buildShortcutStoryBody(
   }
 
   const { post } = event.data
-  const postUrl = `${rootUrl}/b/${post.boardSlug}/posts/${post.id}`
+  const postUrl = buildPostUrl(rootUrl, post.boardSlug, post.id)
   const content = truncate(stripHtml(post.content), 2000)
-  const author = post.authorName || post.authorEmail || 'Anonymous'
+  const author = getAuthorName(post)
 
   const description = [
     content,
@@ -31,7 +32,6 @@ export function buildShortcutStoryBody(
     `[View in Quackback](${postUrl})`,
   ].join('\n')
 
-  // Shortcut story name has a 512 char max
-  const title = post.title.length > 512 ? post.title.slice(0, 509) + '...' : post.title
+  const title = truncate(post.title, 512)
   return { title, description }
 }

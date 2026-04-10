@@ -60,6 +60,7 @@ export async function createTag(input: CreateTagInput): Promise<Tag> {
     .values({
       name: trimmedName,
       color,
+      description: input.description?.trim() || null,
     })
     .returning()
 
@@ -123,6 +124,7 @@ export async function updateTag(id: TagId, input: UpdateTagInput): Promise<Tag> 
   const updateData: Partial<Tag> = {}
   if (input.name !== undefined) updateData.name = input.name.trim()
   if (input.color !== undefined) updateData.color = input.color
+  if (input.description !== undefined) updateData.description = input.description?.trim() || null
 
   // Update the tag
   const [updatedTag] = await db.update(tags).set(updateData).where(eq(tags.id, id)).returning()

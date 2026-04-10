@@ -19,7 +19,7 @@ import {
 } from '@/components/public/post-detail/comments-section'
 import { PinnedCommentSection } from '@/components/public/post-detail/official-response-section'
 import {
-  useUpdatePostStatus,
+  useChangePostStatusId,
   useUpdatePostTags,
   usePinComment,
   useUnpinComment,
@@ -33,7 +33,7 @@ import {
   type RoadmapId,
   type CommentId,
 } from '@quackback/ids'
-import type { PostDetails, CurrentUser } from '@/components/admin/feedback/inbox-types'
+import type { PostDetails, CurrentUser } from '@/lib/shared/types'
 import type { PublicPostDetailView } from '@/lib/client/queries/portal-detail'
 
 interface RoadmapModalProps {
@@ -113,7 +113,7 @@ function RoadmapModalContent({ postId, currentUser, onClose }: RoadmapModalConte
   const [pendingRoadmapId, setPendingRoadmapId] = useState<string | null>(null)
 
   // Mutations
-  const updateStatus = useUpdatePostStatus()
+  const updateStatus = useChangePostStatusId()
   const updateTags = useUpdatePostTags()
   const pinComment = usePinComment({ postId: post.id as PostId })
   const unpinComment = useUnpinComment({ postId: post.id as PostId })

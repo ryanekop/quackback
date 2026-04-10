@@ -1,5 +1,6 @@
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from '@tanstack/react-router'
+import { toast } from 'sonner'
 import {
   DndContext,
   closestCenter,
@@ -17,7 +18,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { PlusIcon, Bars3Icon, TrashIcon, LockClosedIcon } from '@heroicons/react/24/solid'
+import {
+  PlusIcon,
+  Bars3Icon,
+  TrashIcon,
+  LockClosedIcon,
+  ArrowPathIcon,
+  PencilSquareIcon,
+} from '@heroicons/react/24/solid'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
@@ -107,6 +115,15 @@ const PRESET_COLORS = [
   '#a8a29e', // Stone 400
 ]
 
+function randomColor(): string {
+  return (
+    '#' +
+    Math.floor(Math.random() * 0xffffff)
+      .toString(16)
+      .padStart(6, '0')
+  )
+}
+
 interface ColorPickerGridProps {
   selectedColor: string
   onColorChange: (color: string) => void
@@ -124,7 +141,9 @@ function ColorPickerGrid({
           type="button"
           className={cn(
             'h-6 w-6 rounded-full border-2 transition-colors',
-            selectedColor === c ? 'border-foreground' : 'border-transparent'
+            selectedColor.toLowerCase() === c.toLowerCase()
+              ? 'border-foreground'
+              : 'border-transparent'
           )}
           style={{ backgroundColor: c }}
           onClick={() => onColorChange(c)}
@@ -134,15 +153,66 @@ function ColorPickerGrid({
   )
 }
 
+function ColorHexInput({
+  color,
+  onColorChange,
+}: {
+  color: string
+  onColorChange: (color: string) => void
+}) {
+  const [hexInput, setHexInput] = useState(color)
+
+  // Sync when color changes externally (preset click)
+  useEffect(() => {
+    setHexInput(color)
+  }, [color])
+
+  function handleHexChange(value: string) {
+    setHexInput(value)
+    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+      onColorChange(value)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="h-6 w-6 rounded-md border border-border shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      <Input
+        value={hexInput}
+        onChange={(e) => handleHexChange(e.target.value)}
+        className="font-mono text-xs h-7"
+        placeholder="#000000"
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-7 w-7 shrink-0"
+        onClick={() => {
+          const c = randomColor()
+          setHexInput(c)
+          onColorChange(c)
+        }}
+        title="Random color"
+      >
+        <ArrowPathIcon className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  )
+}
+
 export function StatusList({ initialStatuses }: StatusListProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [statuses, setStatuses] = useState(initialStatuses)
-  const [savedStatuses, setSavedStatuses] = useState(initialStatuses)
+  const [savingField, setSavingField] = useState<string | null>(null)
+  const [editingStatus, setEditingStatus] = useState<PostStatusEntity | null>(null)
   const [deleteStatus, setDeleteStatus] = useState<PostStatusEntity | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [createCategory, setCreateCategory] = useState<StatusCategory>('active')
-  const [isSaving, setIsSaving] = useState(false)
 
   // Configure DnD sensors
   const sensors = useSensors(
@@ -151,25 +221,6 @@ export function StatusList({ initialStatuses }: StatusListProps) {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
-
-  // Check if there are unsaved changes
-  const hasChanges =
-    JSON.stringify(
-      statuses.map((s) => ({
-        id: s.id,
-        showOnRoadmap: s.showOnRoadmap,
-        position: s.position,
-        color: s.color,
-      }))
-    ) !==
-    JSON.stringify(
-      savedStatuses.map((s) => ({
-        id: s.id,
-        showOnRoadmap: s.showOnRoadmap,
-        position: s.position,
-        color: s.color,
-      }))
-    )
 
   // Group statuses by category
   const statusesByCategory = CATEGORY_ORDER.reduce(
@@ -182,12 +233,11 @@ export function StatusList({ initialStatuses }: StatusListProps) {
     {} as Record<StatusCategory, PostStatusEntity[]>
   )
 
-  // Handle drag end for reordering (local only)
-  const handleDragEnd = (event: DragEndEvent) => {
+  // Handle drag end — reorder and save immediately
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    // Find which category the item belongs to
     const activeStatus = statuses.find((s) => s.id === active.id)
     if (!activeStatus) return
 
@@ -196,88 +246,66 @@ export function StatusList({ initialStatuses }: StatusListProps) {
 
     const oldIndex = categoryStatuses.findIndex((s) => s.id === active.id)
     const newIndex = categoryStatuses.findIndex((s) => s.id === over.id)
-
-    // Only reorder within same category
     if (newIndex === -1) return
 
-    // Local update only
     const reorderedCategory = arrayMove(categoryStatuses, oldIndex, newIndex)
     setStatuses((prev) => {
       const others = prev.filter((s) => s.category !== category)
       return [...others, ...reorderedCategory.map((s, i) => ({ ...s, position: i }))]
     })
-  }
 
-  // Toggle roadmap (local only)
-  const handleToggleRoadmap = (status: PostStatusEntity) => {
-    setStatuses((prev) =>
-      prev.map((s) => (s.id === status.id ? { ...s, showOnRoadmap: !s.showOnRoadmap } : s))
-    )
-  }
-
-  // Change color (local only)
-  const handleColorChange = (status: PostStatusEntity, color: string) => {
-    setStatuses((prev) => prev.map((s) => (s.id === status.id ? { ...s, color } : s)))
-  }
-
-  // Discard changes
-  const handleDiscard = () => {
-    setStatuses(savedStatuses)
-  }
-
-  // Save all changes
-  const handleSave = async () => {
-    setIsSaving(true)
     try {
-      // Find statuses with changed showOnRoadmap or color
-      const statusChanges = statuses.filter((s) => {
-        const saved = savedStatuses.find((ss) => ss.id === s.id)
-        return saved && (saved.showOnRoadmap !== s.showOnRoadmap || saved.color !== s.color)
+      await reorderStatusesFn({
+        data: { statusIds: reorderedCategory.map((s) => s.id) },
       })
+      startTransition(() => router.invalidate())
+    } catch {
+      toast.error('Failed to reorder statuses')
+      setStatuses(initialStatuses)
+    }
+  }
 
-      // Find categories with changed positions
-      const positionChanges: { category: StatusCategory; statusIds: string[] }[] = []
-      for (const category of CATEGORY_ORDER) {
-        const currentOrder = statusesByCategory[category].map((s) => s.id)
-        const savedOrder = savedStatuses
-          .filter((s) => s.category === category)
-          .sort((a, b) => a.position - b.position)
-          .map((s) => s.id)
+  // Toggle roadmap — save immediately
+  const handleToggleRoadmap = async (status: PostStatusEntity) => {
+    const newValue = !status.showOnRoadmap
+    setSavingField(`roadmap-${status.id}`)
+    setStatuses((prev) =>
+      prev.map((s) => (s.id === status.id ? { ...s, showOnRoadmap: newValue } : s))
+    )
 
-        if (JSON.stringify(currentOrder) !== JSON.stringify(savedOrder)) {
-          positionChanges.push({ category, statusIds: currentOrder })
-        }
-      }
-
-      // Apply status changes (roadmap and color)
-      for (const status of statusChanges) {
-        await updateStatusFn({
-          data: {
-            id: status.id,
-            showOnRoadmap: status.showOnRoadmap,
-            color: status.color,
-          },
-        })
-      }
-
-      // Apply position changes
-      for (const change of positionChanges) {
-        await reorderStatusesFn({
-          data: {
-            statusIds: change.statusIds,
-          },
-        })
-      }
-
-      setSavedStatuses(statuses)
-      startTransition(() => {
-        router.invalidate()
+    try {
+      await updateStatusFn({
+        data: { id: status.id, showOnRoadmap: newValue },
       })
-    } catch (error) {
-      console.error('Failed to save changes:', error)
-      alert('Failed to save changes')
+      startTransition(() => router.invalidate())
+    } catch {
+      toast.error('Failed to update roadmap visibility')
+      setStatuses((prev) =>
+        prev.map((s) => (s.id === status.id ? { ...s, showOnRoadmap: !newValue } : s))
+      )
     } finally {
-      setIsSaving(false)
+      setSavingField(null)
+    }
+  }
+
+  // Change color — save immediately
+  const handleColorChange = async (status: PostStatusEntity, color: string) => {
+    const previousColor = status.color
+    setSavingField(`color-${status.id}`)
+    setStatuses((prev) => prev.map((s) => (s.id === status.id ? { ...s, color } : s)))
+
+    try {
+      await updateStatusFn({
+        data: { id: status.id, color },
+      })
+      startTransition(() => router.invalidate())
+    } catch {
+      toast.error('Failed to update color')
+      setStatuses((prev) =>
+        prev.map((s) => (s.id === status.id ? { ...s, color: previousColor } : s))
+      )
+    } finally {
+      setSavingField(null)
     }
   }
 
@@ -285,18 +313,11 @@ export function StatusList({ initialStatuses }: StatusListProps) {
     if (!deleteStatus) return
 
     try {
-      await deleteStatusFn({
-        data: {
-          id: deleteStatus.id,
-        },
-      })
-
+      await deleteStatusFn({ data: { id: deleteStatus.id } })
       setStatuses((prev) => prev.filter((s) => s.id !== deleteStatus.id))
-      startTransition(() => {
-        router.invalidate()
-      })
+      startTransition(() => router.invalidate())
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to delete status')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete status')
     } finally {
       setDeleteStatus(null)
     }
@@ -318,27 +339,23 @@ export function StatusList({ initialStatuses }: StatusListProps) {
 
       setStatuses((prev) => [...prev, newStatus as PostStatusEntity])
       setCreateDialogOpen(false)
-      startTransition(() => {
-        router.invalidate()
-      })
+      startTransition(() => router.invalidate())
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to create status')
+      toast.error(error instanceof Error ? error.message : 'Failed to create status')
     }
   }
 
   const roadmapCount = statuses.filter((s) => s.showOnRoadmap).length
-
-  const roadmapValid = roadmapCount === 3
 
   return (
     <div className="space-y-8">
       {/* Roadmap info */}
       <div className="flex items-center justify-end gap-3">
         <p className="text-sm text-muted-foreground">Toggle statuses to show on your roadmap</p>
-        <Badge variant={roadmapValid ? 'outline' : 'destructive'}>{roadmapCount}/3 selected</Badge>
+        <Badge variant="outline">{roadmapCount} selected</Badge>
       </div>
 
-      {/* Status categories with drag and drop - Two column layout */}
+      {/* Status categories with drag and drop */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         {CATEGORY_ORDER.map((category) => {
           const categoryStatuses = statusesByCategory[category]
@@ -361,6 +378,8 @@ export function StatusList({ initialStatuses }: StatusListProps) {
                       key={status.id}
                       status={status}
                       canDelete={canDeleteInCategory && !status.isDefault}
+                      savingField={savingField}
+                      onEdit={() => setEditingStatus(status)}
                       onToggleRoadmap={() => handleToggleRoadmap(status)}
                       onColorChange={(color) => handleColorChange(status, color)}
                       onDelete={() => setDeleteStatus(status)}
@@ -405,20 +424,25 @@ export function StatusList({ initialStatuses }: StatusListProps) {
         onSubmit={handleCreate}
       />
 
-      {/* Fixed save button at bottom right */}
-      {hasChanges && (
-        <div className="fixed bottom-6 right-6 flex items-center gap-2 bg-background border rounded-lg shadow-lg p-3">
-          {!roadmapValid && (
-            <span className="text-sm text-destructive">Select exactly 3 roadmap statuses</span>
-          )}
-          <Button variant="ghost" size="sm" onClick={handleDiscard} disabled={isSaving}>
-            Discard
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={isSaving || !roadmapValid}>
-            {isSaving ? 'Saving...' : 'Save changes'}
-          </Button>
-        </div>
-      )}
+      {/* Edit status dialog */}
+      <EditStatusDialog
+        open={!!editingStatus}
+        onOpenChange={() => setEditingStatus(null)}
+        status={editingStatus}
+        onSubmit={async (data) => {
+          if (!editingStatus) return
+          try {
+            await updateStatusFn({ data: { id: editingStatus.id, ...data } })
+            setStatuses((prev) =>
+              prev.map((s) => (s.id === editingStatus.id ? { ...s, ...data } : s))
+            )
+            setEditingStatus(null)
+            startTransition(() => router.invalidate())
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to update status')
+          }
+        }}
+      />
     </div>
   )
 }
@@ -426,6 +450,8 @@ export function StatusList({ initialStatuses }: StatusListProps) {
 interface SortableStatusItemProps {
   status: PostStatusEntity
   canDelete: boolean
+  savingField: string | null
+  onEdit: () => void
   onToggleRoadmap: () => void
   onColorChange: (color: string) => void
   onDelete: () => void
@@ -434,6 +460,8 @@ interface SortableStatusItemProps {
 function SortableStatusItem({
   status,
   canDelete,
+  savingField,
+  onEdit,
   onToggleRoadmap,
   onColorChange,
   onDelete,
@@ -475,8 +503,9 @@ function SortableStatusItem({
             style={{ backgroundColor: status.color }}
           />
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-2" align="start">
+        <PopoverContent className="w-auto p-2 space-y-2" align="start">
           <ColorPickerGrid selectedColor={status.color} onColorChange={onColorChange} />
+          <ColorHexInput color={status.color} onColorChange={onColorChange} />
         </PopoverContent>
       </Popover>
 
@@ -496,7 +525,21 @@ function SortableStatusItem({
         )}
       </span>
 
+      {/* Edit button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100"
+        onClick={onEdit}
+        title="Edit status"
+      >
+        <PencilSquareIcon className="h-3.5 w-3.5" />
+      </Button>
+
       {/* Roadmap toggle */}
+      {(savingField === `roadmap-${status.id}` || savingField === `color-${status.id}`) && (
+        <ArrowPathIcon className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+      )}
       <Switch
         checked={status.showOnRoadmap}
         onCheckedChange={onToggleRoadmap}
@@ -536,8 +579,17 @@ interface CreateStatusDialogProps {
 function CreateStatusDialog({ open, onOpenChange, category, onSubmit }: CreateStatusDialogProps) {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
-  const [color, setColor] = useState(PRESET_COLORS[0])
+  const [color, setColor] = useState(() => randomColor())
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Reset with new random color when dialog opens
+  useEffect(() => {
+    if (open) {
+      setName('')
+      setSlug('')
+      setColor(randomColor())
+    }
+  }, [open])
 
   const handleNameChange = (value: string) => {
     setName(value)
@@ -557,9 +609,6 @@ function CreateStatusDialog({ open, onOpenChange, category, onSubmit }: CreateSt
     setIsSubmitting(true)
     try {
       await onSubmit({ name, slug, color, category })
-      setName('')
-      setSlug('')
-      setColor(PRESET_COLORS[0])
     } finally {
       setIsSubmitting(false)
     }
@@ -605,6 +654,7 @@ function CreateStatusDialog({ open, onOpenChange, category, onSubmit }: CreateSt
           <div className="space-y-2">
             <Label>Color</Label>
             <ColorPickerGrid selectedColor={color} onColorChange={setColor} />
+            <ColorHexInput color={color} onColorChange={setColor} />
           </div>
 
           <DialogFooter>
@@ -613,6 +663,76 @@ function CreateStatusDialog({ open, onOpenChange, category, onSubmit }: CreateSt
             </Button>
             <Button type="submit" disabled={isSubmitting || !name || !slug}>
               {isSubmitting ? 'Creating...' : 'Create status'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface EditStatusDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  status: PostStatusEntity | null
+  onSubmit: (data: { name: string; color: string }) => Promise<void>
+}
+
+function EditStatusDialog({ open, onOpenChange, status, onSubmit }: EditStatusDialogProps) {
+  const [name, setName] = useState('')
+  const [color, setColor] = useState('#6b7280')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (open && status) {
+      setName(status.name)
+      setColor(status.color)
+    }
+  }, [open, status])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return
+
+    setIsSubmitting(true)
+    try {
+      await onSubmit({ name: name.trim(), color })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit status</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">Name</Label>
+            <Input
+              id="edit-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., In Review"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Color</Label>
+            <ColorPickerGrid selectedColor={color} onColorChange={setColor} />
+            <ColorHexInput color={color} onColorChange={setColor} />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting || !name.trim()}>
+              {isSubmitting ? 'Saving...' : 'Save changes'}
             </Button>
           </DialogFooter>
         </form>

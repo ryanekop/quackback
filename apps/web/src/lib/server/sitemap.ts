@@ -14,10 +14,6 @@ export interface SitemapUrl {
   lastmod?: string
 }
 
-export function toW3CDate(date: Date): string {
-  return date.toISOString().split('T')[0]
-}
-
 export function escapeXml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }

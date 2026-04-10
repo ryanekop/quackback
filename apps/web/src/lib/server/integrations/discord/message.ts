@@ -5,10 +5,7 @@
 
 import type { EventData } from '../../events/types'
 import { stripHtml, truncate, formatStatus, getStatusEmoji } from '../../events/hook-utils'
-
-function truncateTitle(title: string): string {
-  return title.length > 256 ? title.slice(0, 253) + '...' : title
-}
+import { getAuthorName, buildPostUrl } from '../message-utils'
 
 interface DiscordEmbed {
   title?: string
@@ -54,14 +51,14 @@ export function buildDiscordMessage(event: EventData, rootUrl: string): DiscordM
   switch (event.type) {
     case 'post.created': {
       const { post } = event.data
-      const postUrl = `${rootUrl}/b/${post.boardSlug}/posts/${post.id}`
+      const postUrl = buildPostUrl(rootUrl, post.boardSlug, post.id)
       const content = truncate(stripHtml(post.content), 300)
-      const author = post.authorName || post.authorEmail || 'Anonymous'
+      const author = getAuthorName(post)
 
       return {
         embeds: [
           {
-            title: truncateTitle(post.title),
+            title: truncate(post.title, 256),
             url: postUrl,
             description: content || undefined,
             color: COLORS.blue,
@@ -75,14 +72,14 @@ export function buildDiscordMessage(event: EventData, rootUrl: string): DiscordM
 
     case 'post.status_changed': {
       const { post, previousStatus, newStatus } = event.data
-      const postUrl = `${rootUrl}/b/${post.boardSlug}/posts/${post.id}`
+      const postUrl = buildPostUrl(rootUrl, post.boardSlug, post.id)
       const emoji = getStatusEmoji(newStatus)
       const actor = event.actor.email || 'System'
 
       return {
         embeds: [
           {
-            title: truncateTitle(post.title),
+            title: truncate(post.title, 256),
             url: postUrl,
             description: `${formatStatus(previousStatus)} → **${formatStatus(newStatus)}**`,
             color: getStatusColor(newStatus),
@@ -95,14 +92,14 @@ export function buildDiscordMessage(event: EventData, rootUrl: string): DiscordM
 
     case 'post.updated': {
       const { post, changedFields } = event.data
-      const postUrl = `${rootUrl}/b/${post.boardSlug}/posts/${post.id}`
+      const postUrl = buildPostUrl(rootUrl, post.boardSlug, post.id)
       const actor = event.actor.email || 'System'
       const fields = changedFields.join(', ')
 
       return {
         embeds: [
           {
-            title: truncateTitle(post.title),
+            title: truncate(post.title, 256),
             url: postUrl,
             description: `Changed: ${fields}`,
             color: COLORS.yellow,
@@ -120,7 +117,7 @@ export function buildDiscordMessage(event: EventData, rootUrl: string): DiscordM
       return {
         embeds: [
           {
-            title: truncateTitle(post.title),
+            title: truncate(post.title, 256),
             color: COLORS.grey,
             author: { name: `🗑️ Post deleted by ${actor}` },
             timestamp: event.timestamp,
@@ -131,13 +128,13 @@ export function buildDiscordMessage(event: EventData, rootUrl: string): DiscordM
 
     case 'post.merged': {
       const { duplicatePost, canonicalPost } = event.data
-      const canonicalUrl = `${rootUrl}/b/${canonicalPost.boardSlug}/posts/${canonicalPost.id}`
+      const canonicalUrl = buildPostUrl(rootUrl, canonicalPost.boardSlug, canonicalPost.id)
       const actor = event.actor.email || 'System'
 
       return {
         embeds: [
           {
-            title: truncateTitle(canonicalPost.title),
+            title: truncate(canonicalPost.title, 256),
             url: canonicalUrl,
             description: `"${duplicatePost.title}" merged into this post`,
             color: COLORS.orange,
@@ -150,14 +147,14 @@ export function buildDiscordMessage(event: EventData, rootUrl: string): DiscordM
 
     case 'comment.created': {
       const { comment, post } = event.data
-      const postUrl = `${rootUrl}/b/${post.boardSlug}/posts/${post.id}`
+      const postUrl = buildPostUrl(rootUrl, post.boardSlug, post.id)
       const content = truncate(stripHtml(comment.content), 300)
-      const author = comment.authorName || comment.authorEmail || 'Anonymous'
+      const author = getAuthorName(comment)
 
       return {
         embeds: [
           {
-            title: truncateTitle(post.title),
+            title: truncate(post.title, 256),
             url: postUrl,
             description: content || undefined,
             color: COLORS.blue,

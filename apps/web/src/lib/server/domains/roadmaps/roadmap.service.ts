@@ -13,6 +13,7 @@ import {
   eq,
   and,
   isNull,
+  inArray,
   asc,
   sql,
   roadmaps,
@@ -188,16 +189,14 @@ export async function reorderRoadmaps(roadmapIds: RoadmapId[]): Promise<void> {
 
   // Build CASE WHEN clause for batch update
   const cases = roadmapIds
-    .map((id, i) => sql`WHEN id = ${toUuid(id)} THEN ${i}`)
+    .map((id, i) => sql`WHEN ${roadmaps.id} = ${toUuid(id)} THEN ${sql.raw(String(i))}`)
     .reduce((acc, curr) => sql`${acc} ${curr}`, sql``)
-  const ids = roadmapIds.map((id) => toUuid(id))
 
   // Single UPDATE with CASE expression
-  await db.execute(sql`
-    UPDATE roadmaps
-    SET position = CASE ${cases} END
-    WHERE id = ANY(${ids}::uuid[])
-  `)
+  await db
+    .update(roadmaps)
+    .set({ position: sql`CASE ${cases} END` })
+    .where(inArray(roadmaps.id, roadmapIds))
 }
 
 // ==========================================================================
@@ -308,19 +307,16 @@ export async function reorderPostsInColumn(input: ReorderPostsInput): Promise<vo
 
   if (input.postIds.length === 0) return
 
-  const roadmapUuid = toUuid(input.roadmapId)
-
   // Build CASE WHEN clause for batch update
   const cases = input.postIds
-    .map((id, i) => sql`WHEN post_id = ${toUuid(id)} THEN ${i}`)
+    .map((id, i) => sql`WHEN ${postRoadmaps.postId} = ${toUuid(id)} THEN ${sql.raw(String(i))}`)
     .reduce((acc, curr) => sql`${acc} ${curr}`, sql``)
-  const postIds = input.postIds.map((id) => toUuid(id))
 
   // Single UPDATE with CASE expression
-  await db.execute(sql`
-    UPDATE post_roadmaps
-    SET position = CASE ${cases} END
-    WHERE roadmap_id = ${roadmapUuid}
-      AND post_id = ANY(${postIds}::uuid[])
-  `)
+  await db
+    .update(postRoadmaps)
+    .set({ position: sql`CASE ${cases} END` })
+    .where(
+      and(eq(postRoadmaps.roadmapId, input.roadmapId), inArray(postRoadmaps.postId, input.postIds))
+    )
 }

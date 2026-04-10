@@ -38,7 +38,7 @@ import { PostActivityTimeline } from '@/components/admin/feedback/detail/post-ac
 import { useNavigationContext } from '@/components/admin/feedback/detail/use-navigation-context'
 import {
   useUpdatePost,
-  useUpdatePostStatus,
+  useChangePostStatusId,
   useUpdatePostTags,
   usePinComment,
   useUnpinComment,
@@ -64,7 +64,7 @@ import {
   type BoardId,
 } from '@quackback/ids'
 import { useDeleteComment, useRestoreComment } from '@/lib/client/mutations/portal-comments'
-import type { PostDetails, CurrentUser } from '@/components/admin/feedback/inbox-types'
+import type { PostDetails, CurrentUser } from '@/lib/shared/types'
 import {
   toPortalComments,
   getInitialContentJson,
@@ -129,7 +129,7 @@ function PostModalContent({
 
   // Mutations
   const updatePost = useUpdatePost()
-  const updateStatus = useUpdatePostStatus()
+  const updateStatus = useChangePostStatusId()
   const updateTags = useUpdatePostTags()
   const pinComment = usePinComment({ postId: post.id as PostId })
   const unpinComment = useUnpinComment({ postId: post.id as PostId })

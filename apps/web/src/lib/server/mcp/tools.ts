@@ -72,6 +72,7 @@ import {
 } from '@/lib/server/domains/roadmaps/roadmap.service'
 import { getTypeIdPrefix, isTypeId, isValidTypeId } from '@quackback/ids'
 import { isTeamMember } from '@/lib/shared/roles'
+import { truncate } from '@/lib/shared/utils/string'
 import {
   listArticles,
   getArticleById,
@@ -187,12 +188,6 @@ async function requireHelpCenterWrite(auth: McpAuthContext): Promise<CallToolRes
   return (
     (await requireHelpCenter()) ?? requireScope(auth, 'write:help-center') ?? requireTeamRole(auth)
   )
-}
-
-/** Truncate content to an excerpt. */
-function truncateExcerpt(content: string | null | undefined, max = 200): string {
-  if (!content) return ''
-  return content.length > max ? content.slice(0, max) + '...' : content
 }
 
 /** Format a help center article as a tool result. */
@@ -1833,7 +1828,7 @@ async function searchPosts(args: SearchArgs): Promise<CallToolResult> {
     posts: result.items.map((p) => ({
       id: p.id,
       title: p.title,
-      excerpt: truncateExcerpt(p.content),
+      excerpt: p.content ? truncate(p.content, 200) : '',
       voteCount: p.voteCount,
       commentCount: p.commentCount,
       boardId: p.boardId,
@@ -1884,7 +1879,7 @@ async function searchChangelogs(args: SearchArgs): Promise<CallToolResult> {
     changelogs: result.items.map((c) => ({
       id: c.id,
       title: c.title,
-      excerpt: truncateExcerpt(c.content),
+      excerpt: c.content ? truncate(c.content, 200) : '',
       status: c.status,
       authorName: c.author?.name ?? null,
       linkedPosts: c.linkedPosts.map((p) => ({
@@ -1930,7 +1925,7 @@ async function searchArticles(args: SearchArgs): Promise<CallToolResult> {
       id: a.id,
       slug: a.slug,
       title: a.title,
-      excerpt: truncateExcerpt(a.content),
+      excerpt: a.content ? truncate(a.content, 200) : '',
       description: a.description,
       status: a.publishedAt ? 'published' : 'draft',
       categoryId: a.category.id,

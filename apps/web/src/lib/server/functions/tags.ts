@@ -25,6 +25,7 @@ const createTagSchema = z.object({
     .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color')
     .optional()
     .default('#6b7280'),
+  description: z.string().max(200).optional(),
 })
 
 const getTagSchema = z.object({
@@ -38,6 +39,7 @@ const updateTagSchema = z.object({
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/)
     .optional(),
+  description: z.string().max(200).optional().nullable(),
 })
 
 const deleteTagSchema = z.object({
@@ -110,6 +112,7 @@ export const createTagFn = createServerFn({ method: 'POST' })
       const tag = await createTag({
         name: data.name,
         color: data.color,
+        description: data.description,
       })
       console.log(`[fn:tags] createTagFn: id=${tag.id}`)
       return tag
@@ -132,6 +135,7 @@ export const updateTagFn = createServerFn({ method: 'POST' })
       const tag = await updateTag(data.id as TagId, {
         name: data.name,
         color: data.color,
+        description: data.description,
       })
       console.log(`[fn:tags] updateTagFn: updated id=${tag.id}`)
       return tag
