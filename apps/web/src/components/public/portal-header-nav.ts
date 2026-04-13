@@ -12,7 +12,7 @@ const NAV_ITEMS_BASE = [
 const NAV_ITEM_HELP = {
   to: '/hc',
   messageId: 'portal.header.nav.help',
-  defaultMessage: 'Help',
+  defaultMessage: 'Help Center',
 } as const
 
 export type PortalNavItem = (typeof NAV_ITEMS_BASE)[number] | typeof NAV_ITEM_HELP
