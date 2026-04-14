@@ -128,10 +128,8 @@ export const restoreArticleSchema = z.object({
 
 export const updateHelpCenterConfigSchema = z.object({
   enabled: z.boolean().optional(),
-  customDomain: z.string().max(253).nullable().optional(),
   homepageTitle: z.string().min(1).max(200).optional(),
   homepageDescription: z.string().max(500).optional(),
-  access: z.enum(['public', 'authenticated']).optional(),
 })
 
 export const updateHelpCenterSeoSchema = z.object({
