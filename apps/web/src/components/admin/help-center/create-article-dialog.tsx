@@ -18,8 +18,19 @@ import {
 } from './help-center-metadata-sidebar'
 import type { JSONContent } from '@tiptap/react'
 
-export function CreateArticleDialog() {
-  const [open, setOpen] = useState(false)
+interface CreateArticleDialogProps {
+  /** Controlled open state. When provided, the built-in trigger button is hidden. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function CreateArticleDialog({
+  open: openProp,
+  onOpenChange,
+}: CreateArticleDialogProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? openProp : internalOpen
   const [contentJson, setContentJson] = useState<JSONContent | null>(null)
   const [categoryId, setCategoryId] = useState('')
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
@@ -60,7 +71,7 @@ export function CreateArticleDialog() {
       },
       {
         onSuccess: () => {
-          setOpen(false)
+          handleOpenChange(false)
           form.reset()
           setContentJson(null)
           setCategoryId('')
@@ -70,7 +81,11 @@ export function CreateArticleDialog() {
   })
 
   function handleOpenChange(isOpen: boolean) {
-    setOpen(isOpen)
+    if (isControlled) {
+      onOpenChange?.(isOpen)
+    } else {
+      setInternalOpen(isOpen)
+    }
     if (!isOpen) {
       form.reset()
       setContentJson(null)
@@ -83,12 +98,14 @@ export function CreateArticleDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <PlusIcon className="h-4 w-4 mr-1.5" />
-          New Article
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button size="sm">
+            <PlusIcon className="h-4 w-4 mr-1.5" />
+            New Article
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent
         className="w-[95vw] sm:w-[90vw] lg:max-w-5xl xl:max-w-6xl h-[85vh] p-0 gap-0 overflow-hidden flex flex-col"
         onKeyDown={handleKeyDown}
@@ -119,7 +136,7 @@ export function CreateArticleDialog() {
             </div>
 
             <ModalFooter
-              onCancel={() => setOpen(false)}
+              onCancel={() => handleOpenChange(false)}
               submitLabel={createArticleMutation.isPending ? 'Saving...' : 'Save Draft'}
               isPending={createArticleMutation.isPending}
             >

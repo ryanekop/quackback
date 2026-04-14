@@ -1,14 +1,16 @@
+import { useMemo, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { Route } from '@/routes/admin/help-center'
 import { cn } from '@/lib/shared/utils'
 import { FilterSection } from '@/components/shared/filter-section'
+import { Input } from '@/components/ui/input'
 import { helpCenterQueries } from '@/lib/client/queries/help-center'
 import type { HelpCenterStatusFilter } from './use-help-center-filters'
 
 interface HelpCenterFiltersProps {
   status: HelpCenterStatusFilter
   onStatusChange: (status: HelpCenterStatusFilter) => void
-  category?: string
-  onCategoryChange: (category: string | undefined) => void
 }
 
 const ARTICLE_STATUSES = [
@@ -17,13 +19,17 @@ const ARTICLE_STATUSES = [
   { id: 'published', name: 'Published', color: '#22c55e' },
 ] as const
 
-export function HelpCenterFiltersPanel({
-  status,
-  onStatusChange,
-  category,
-  onCategoryChange,
-}: HelpCenterFiltersProps) {
+export function HelpCenterFiltersPanel({ status, onStatusChange }: HelpCenterFiltersProps) {
   const { data: categories } = useQuery(helpCenterQueries.categories())
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = Route.useSearch()
+  const [jumpQuery, setJumpQuery] = useState('')
+
+  const jumpMatches = useMemo(() => {
+    if (!categories || jumpQuery.trim().length === 0) return []
+    const q = jumpQuery.trim().toLowerCase()
+    return categories.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 8)
+  }, [categories, jumpQuery])
 
   return (
     <div className="space-y-0">
@@ -61,49 +67,35 @@ export function HelpCenterFiltersPanel({
         </div>
       </FilterSection>
 
-      {categories && categories.length > 0 && (
-        <FilterSection title="Category">
-          <div className="space-y-1" role="listbox" aria-label="Category filter">
-            <button
-              type="button"
-              role="option"
-              aria-selected={!category}
-              onClick={() => onCategoryChange(undefined)}
-              className={cn(
-                'w-full text-left px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors',
-                !category
-                  ? 'bg-muted text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              )}
-            >
-              All Categories
-            </button>
-            {categories.map((cat) => {
-              const isSelected = category === cat.id
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => onCategoryChange(cat.id)}
-                  className={cn(
-                    'w-full text-left px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors',
-                    isSelected
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  )}
-                >
-                  <span className="flex items-center justify-between">
-                    <span className="truncate">{cat.name}</span>
-                    <span className="text-muted-foreground/50 text-[10px]">{cat.articleCount}</span>
-                  </span>
-                </button>
-              )
-            })}
+      <FilterSection title="Jump to">
+        <Input
+          placeholder="Search categories..."
+          value={jumpQuery}
+          onChange={(e) => setJumpQuery(e.target.value)}
+          className="h-7 text-xs"
+        />
+        {jumpMatches.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {jumpMatches.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  setJumpQuery('')
+                  void navigate({
+                    to: '/admin/help-center',
+                    search: { ...search, category: cat.id },
+                  })
+                }}
+                className="w-full text-left px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-2"
+              >
+                <span className="shrink-0">{cat.icon || '📁'}</span>
+                <span className="truncate">{cat.name}</span>
+              </button>
+            ))}
           </div>
-        </FilterSection>
-      )}
+        )}
+      </FilterSection>
     </div>
   )
 }
