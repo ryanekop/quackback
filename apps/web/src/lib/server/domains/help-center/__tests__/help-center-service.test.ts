@@ -133,7 +133,14 @@ vi.mock('@/lib/server/db', () => ({
   lt: vi.fn(),
   desc: vi.fn(),
   asc: vi.fn(),
-  sql: vi.fn(),
+  sql: vi.fn(() => {
+    // Return a chainable stub so `sql\`...\`.as('x')` works under mocks.
+    // Real SQL execution is exercised in integration tests, not here.
+    const stub: { as: (alias: string) => typeof stub } = {
+      as: () => stub,
+    }
+    return stub
+  }),
   inArray: vi.fn(),
 }))
 

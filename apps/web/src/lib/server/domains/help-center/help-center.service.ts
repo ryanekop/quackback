@@ -119,6 +119,11 @@ export async function listCategories(
 ): Promise<HelpCenterCategoryWithCount[]> {
   const { showDeleted = false } = options
   const now = new Date()
+  // ISO string for use inside raw sql templates — the pg driver's Date
+  // serialization is only applied for operator functions (lte, eq, etc.);
+  // raw interpolation in a sql template sends the JS toString() which
+  // Postgres rejects as a timestamp.
+  const nowIso = now.toISOString()
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   // Count in a single pass: total articles per category (drafts + published)
@@ -139,8 +144,11 @@ export async function listCategories(
       ? db
           .select({
             categoryId: helpCenterArticles.categoryId,
-            totalCount: sql<number>`count(*)::int`,
-            publishedCount: sql<number>`count(*) filter (where ${helpCenterArticles.publishedAt} is not null and ${helpCenterArticles.publishedAt} <= ${now})::int`,
+            totalCount: sql<number>`count(*)::int`.as('total_count'),
+            publishedCount:
+              sql<number>`count(*) filter (where ${helpCenterArticles.publishedAt} is not null and ${helpCenterArticles.publishedAt} <= ${nowIso})::int`.as(
+                'published_count'
+              ),
           })
           .from(helpCenterArticles)
           .where(
@@ -153,8 +161,11 @@ export async function listCategories(
       : db
           .select({
             categoryId: helpCenterArticles.categoryId,
-            totalCount: sql<number>`count(*)::int`,
-            publishedCount: sql<number>`count(*) filter (where ${helpCenterArticles.publishedAt} is not null and ${helpCenterArticles.publishedAt} <= ${now})::int`,
+            totalCount: sql<number>`count(*)::int`.as('total_count'),
+            publishedCount:
+              sql<number>`count(*) filter (where ${helpCenterArticles.publishedAt} is not null and ${helpCenterArticles.publishedAt} <= ${nowIso})::int`.as(
+                'published_count'
+              ),
           })
           .from(helpCenterArticles)
           .where(isNull(helpCenterArticles.deletedAt))
