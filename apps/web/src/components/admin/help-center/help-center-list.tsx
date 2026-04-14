@@ -77,6 +77,10 @@ export function HelpCenterList() {
           <HelpCenterFiltersPanel
             status={filters.status}
             onStatusChange={(status) => setFilters({ status: status as HelpCenterStatusFilter })}
+            showDeleted={filters.showDeleted}
+            onShowDeletedChange={(showDeleted) =>
+              setFilters({ showDeleted: showDeleted ?? undefined })
+            }
           />
         }
         hasActiveFilters={hasActiveFilters}

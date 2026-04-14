@@ -7,6 +7,7 @@ import {
   PencilIcon,
   TrashIcon,
   EllipsisHorizontalIcon,
+  ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/shared/spinner'
@@ -26,12 +27,17 @@ import { HelpCenterCategoryGroup } from './help-center-category-group'
 import { CreateArticleDialog } from './create-article-dialog'
 import { CategoryFormDialog } from './category-form-dialog'
 import { helpCenterQueries } from '@/lib/client/queries/help-center'
-import { useDeleteCategory } from '@/lib/client/mutations/help-center'
+import {
+  useDeleteCategory,
+  useRestoreCategory,
+  useRestoreArticle,
+} from '@/lib/client/mutations/help-center'
 import { collectDescendantIds } from '@/lib/server/domains/help-center/category-tree'
 import { useHelpCenterFilters } from './use-help-center-filters'
 import { useInfiniteScroll } from '@/lib/client/hooks/use-infinite-scroll'
 import { AdminListHeader } from '@/components/admin/admin-list-header'
 import { useDebouncedSearch } from '@/lib/client/hooks/use-debounced-search'
+import { TimeAgo } from '@/components/ui/time-ago'
 import type { HelpCenterArticleId, HelpCenterCategoryId } from '@quackback/ids'
 
 interface HelpCenterFinderProps {
@@ -40,6 +46,17 @@ interface HelpCenterFinderProps {
 }
 
 export function HelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterFinderProps) {
+  const { filters } = useHelpCenterFilters()
+
+  // When showDeleted is active, render the flat deleted-items view instead
+  if (filters.showDeleted) {
+    return <DeletedItemsView />
+  }
+
+  return <LiveHelpCenterFinder onEditArticle={onEditArticle} onDeleteArticle={onDeleteArticle} />
+}
+
+function LiveHelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterFinderProps) {
   const { filters, setFilters } = useHelpCenterFilters()
 
   const [createArticleOpen, setCreateArticleOpen] = useState(false)
@@ -371,6 +388,128 @@ export function HelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterF
         isPending={deleteCategoryMutation.isPending}
         onConfirm={handleDeleteCategory}
       />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Deleted Items View
+// ---------------------------------------------------------------------------
+
+function DeletedItemsView() {
+  const { data: deletedCategories = [], isLoading: categoriesLoading } = useQuery(
+    helpCenterQueries.categories({ showDeleted: true })
+  )
+
+  const { data: deletedArticlesData, isLoading: articlesLoading } = useInfiniteQuery({
+    ...helpCenterQueries.articleList({ showDeleted: true }),
+  })
+
+  const deletedArticles = deletedArticlesData?.pages.flatMap((p) => p.items) ?? []
+
+  const restoreCategoryMutation = useRestoreCategory()
+  const restoreArticleMutation = useRestoreArticle()
+
+  const breadcrumbs = [
+    { label: 'Help Center', href: '/admin/help-center' },
+    { label: 'Deleted', href: '/admin/help-center' },
+  ]
+
+  return (
+    <div className="max-w-5xl mx-auto w-full">
+      <AdminListHeader searchValue="" onSearchChange={() => {}} searchPlaceholder="Deleted items">
+        <div className="mt-1">
+          <HelpCenterBreadcrumbs items={breadcrumbs} />
+        </div>
+      </AdminListHeader>
+
+      <div className="px-3 pb-3 flex items-center justify-between">
+        <h1 className="text-lg font-semibold">Deleted items</h1>
+      </div>
+
+      {/* Deleted categories */}
+      <section className="px-3 pb-4">
+        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          Deleted categories
+        </h2>
+        {categoriesLoading ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : deletedCategories.length === 0 ? (
+          <EmptyState
+            icon={QuestionMarkCircleIcon}
+            title="No deleted categories"
+            className="h-32"
+          />
+        ) : (
+          <div className="rounded-xl overflow-hidden shadow-sm divide-y divide-border/50 bg-card border border-border/50">
+            {deletedCategories.map((cat) => (
+              <div key={cat.id} className="flex items-center gap-3 px-4 py-3">
+                <span className="text-base">{cat.icon || '📁'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{cat.name}</p>
+                  {cat.deletedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      Deleted <TimeAgo date={cat.deletedAt as string} />
+                    </p>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => restoreCategoryMutation.mutate(cat.id)}
+                  disabled={restoreCategoryMutation.isPending}
+                >
+                  <ArrowUturnLeftIcon className="h-3.5 w-3.5 mr-1" />
+                  Restore
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Deleted articles */}
+      <section className="px-3 pb-4">
+        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          Deleted articles
+        </h2>
+        {articlesLoading ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : deletedArticles.length === 0 ? (
+          <EmptyState icon={QuestionMarkCircleIcon} title="No deleted articles" className="h-32" />
+        ) : (
+          <div className="rounded-xl overflow-hidden shadow-sm divide-y divide-border/50 bg-card border border-border/50">
+            {deletedArticles.map((article) => (
+              <div key={article.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{article.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="mr-2">{article.category.name}</span>
+                    {article.deletedAt && (
+                      <>
+                        &middot; Deleted <TimeAgo date={article.deletedAt} />
+                      </>
+                    )}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => restoreArticleMutation.mutate(article.id as HelpCenterArticleId)}
+                  disabled={restoreArticleMutation.isPending}
+                >
+                  <ArrowUturnLeftIcon className="h-3.5 w-3.5 mr-1" />
+                  Restore
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

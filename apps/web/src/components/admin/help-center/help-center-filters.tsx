@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Route } from '@/routes/admin/help-center'
 import { cn } from '@/lib/shared/utils'
 import { FilterSection } from '@/components/shared/filter-section'
+import { FilterList } from '@/components/admin/feedback/single-select-filter-list'
 import { Input } from '@/components/ui/input'
 import { helpCenterQueries } from '@/lib/client/queries/help-center'
 import type { HelpCenterStatusFilter } from './use-help-center-filters'
@@ -11,6 +12,8 @@ import type { HelpCenterStatusFilter } from './use-help-center-filters'
 interface HelpCenterFiltersProps {
   status: HelpCenterStatusFilter
   onStatusChange: (status: HelpCenterStatusFilter) => void
+  showDeleted?: boolean
+  onShowDeletedChange?: (showDeleted: boolean | undefined) => void
 }
 
 const ARTICLE_STATUSES = [
@@ -19,7 +22,12 @@ const ARTICLE_STATUSES = [
   { id: 'published', name: 'Published', color: '#22c55e' },
 ] as const
 
-export function HelpCenterFiltersPanel({ status, onStatusChange }: HelpCenterFiltersProps) {
+export function HelpCenterFiltersPanel({
+  status,
+  onStatusChange,
+  showDeleted,
+  onShowDeletedChange,
+}: HelpCenterFiltersProps) {
   const { data: categories } = useQuery(helpCenterQueries.categories())
   const navigate = useNavigate({ from: Route.fullPath })
   const search = Route.useSearch()
@@ -95,6 +103,17 @@ export function HelpCenterFiltersPanel({ status, onStatusChange }: HelpCenterFil
             ))}
           </div>
         )}
+      </FilterSection>
+
+      {/* Other Filters */}
+      <FilterSection title="Other">
+        <FilterList
+          items={[{ id: 'deleted', name: 'Deleted items' }]}
+          selectedIds={showDeleted ? ['deleted'] : []}
+          onSelect={() => {
+            onShowDeletedChange?.(!showDeleted || undefined)
+          }}
+        />
       </FilterSection>
     </div>
   )

@@ -11,6 +11,10 @@ import { tiptapContentSchema } from './posts'
 // Category Schemas
 // ============================================================================
 
+export const listCategoriesSchema = z.object({
+  showDeleted: z.boolean().optional(),
+})
+
 export const createCategorySchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),
   slug: z.string().max(200).optional(),
@@ -79,6 +83,7 @@ export const listArticlesSchema = z.object({
   search: z.string().optional(),
   cursor: z.string().optional(),
   limit: z.number().int().positive().max(100).optional(),
+  showDeleted: z.boolean().optional(),
 })
 
 export const listPublicArticlesSchema = z.object({
@@ -106,6 +111,14 @@ export const getArticleBySlugSchema = z.object({
 })
 
 export const unpublishArticleSchema = z.object({
+  id: z.string().min(1),
+})
+
+export const restoreCategorySchema = z.object({
+  id: z.string().min(1),
+})
+
+export const restoreArticleSchema = z.object({
   id: z.string().min(1),
 })
 

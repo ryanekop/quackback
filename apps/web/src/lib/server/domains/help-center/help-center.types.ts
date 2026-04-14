@@ -29,6 +29,7 @@ export interface HelpCenterCategory {
   position: number
   createdAt: Date
   updatedAt: Date
+  deletedAt?: Date | null
 }
 
 export interface HelpCenterCategoryWithCount extends HelpCenterCategory {
@@ -58,6 +59,7 @@ export interface HelpCenterArticle {
   notHelpfulCount: number
   createdAt: Date
   updatedAt: Date
+  deletedAt?: Date | null
 }
 
 export interface HelpCenterArticleWithCategory extends HelpCenterArticle {

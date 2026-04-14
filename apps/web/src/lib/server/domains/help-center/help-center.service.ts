@@ -114,8 +114,12 @@ function validateHierarchyConstraint(params: {
   }
 }
 
-export async function listCategories(): Promise<HelpCenterCategoryWithCount[]> {
+export async function listCategories(
+  options: { showDeleted?: boolean } = {}
+): Promise<HelpCenterCategoryWithCount[]> {
+  const { showDeleted = false } = options
   const now = new Date()
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   // Count in a single pass: total articles per category (drafts + published)
   // alongside the published-only subset, via a FILTER aggregate. Admin
@@ -123,18 +127,38 @@ export async function listCategories(): Promise<HelpCenterCategoryWithCount[]> {
   // `publishedArticleCount` to hide categories that only have drafts.
   const [categories, counts] = await Promise.all([
     db.query.helpCenterCategories.findMany({
-      where: isNull(helpCenterCategories.deletedAt),
+      where: showDeleted
+        ? and(
+            isNotNull(helpCenterCategories.deletedAt),
+            sql`${helpCenterCategories.deletedAt} >= ${thirtyDaysAgo}`
+          )
+        : isNull(helpCenterCategories.deletedAt),
       orderBy: [asc(helpCenterCategories.position), asc(helpCenterCategories.name)],
     }),
-    db
-      .select({
-        categoryId: helpCenterArticles.categoryId,
-        totalCount: sql<number>`count(*)::int`,
-        publishedCount: sql<number>`count(*) filter (where ${helpCenterArticles.publishedAt} is not null and ${helpCenterArticles.publishedAt} <= ${now})::int`,
-      })
-      .from(helpCenterArticles)
-      .where(isNull(helpCenterArticles.deletedAt))
-      .groupBy(helpCenterArticles.categoryId),
+    showDeleted
+      ? db
+          .select({
+            categoryId: helpCenterArticles.categoryId,
+            totalCount: sql<number>`count(*)::int`,
+            publishedCount: sql<number>`count(*) filter (where ${helpCenterArticles.publishedAt} is not null and ${helpCenterArticles.publishedAt} <= ${now})::int`,
+          })
+          .from(helpCenterArticles)
+          .where(
+            and(
+              isNotNull(helpCenterArticles.deletedAt),
+              sql`${helpCenterArticles.deletedAt} >= ${thirtyDaysAgo}`
+            )
+          )
+          .groupBy(helpCenterArticles.categoryId)
+      : db
+          .select({
+            categoryId: helpCenterArticles.categoryId,
+            totalCount: sql<number>`count(*)::int`,
+            publishedCount: sql<number>`count(*) filter (where ${helpCenterArticles.publishedAt} is not null and ${helpCenterArticles.publishedAt} <= ${now})::int`,
+          })
+          .from(helpCenterArticles)
+          .where(isNull(helpCenterArticles.deletedAt))
+          .groupBy(helpCenterArticles.categoryId),
   ])
 
   const countMap = new Map(
@@ -278,6 +302,41 @@ export async function deleteCategory(id: HelpCenterCategoryId): Promise<void> {
   })
 }
 
+export async function restoreCategory(id: HelpCenterCategoryId): Promise<HelpCenterCategory> {
+  console.log(`[domain:help-center] restoreCategory: id=${id}`)
+  const category = await db.query.helpCenterCategories.findFirst({
+    where: eq(helpCenterCategories.id, id),
+  })
+
+  if (!category) {
+    throw new NotFoundError('CATEGORY_NOT_FOUND', `Category ${id} not found`)
+  }
+
+  if (!category.deletedAt) {
+    throw new ValidationError('VALIDATION_ERROR', 'Category is not deleted')
+  }
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  if (new Date(category.deletedAt) < thirtyDaysAgo) {
+    throw new ValidationError(
+      'RESTORE_EXPIRED',
+      'Categories can only be restored within 30 days of deletion'
+    )
+  }
+
+  const [restored] = await db
+    .update(helpCenterCategories)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(eq(helpCenterCategories.id, id))
+    .returning()
+
+  if (!restored) {
+    throw new NotFoundError('CATEGORY_NOT_FOUND', `Category ${id} not found`)
+  }
+
+  return restored
+}
+
 // ============================================================================
 // Articles
 // ============================================================================
@@ -359,20 +418,29 @@ export async function getPublicArticleBySlug(slug: string): Promise<HelpCenterAr
 }
 
 export async function listArticles(params: ListArticlesParams): Promise<ArticleListResult> {
-  const { categoryId, status = 'all', search, cursor, limit = 20 } = params
+  const { categoryId, status = 'all', search, cursor, limit = 20, showDeleted = false } = params
   const now = new Date()
 
-  const conditions = [isNull(helpCenterArticles.deletedAt)]
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const conditions = showDeleted
+    ? [
+        isNotNull(helpCenterArticles.deletedAt),
+        sql`${helpCenterArticles.deletedAt} >= ${thirtyDaysAgo}`,
+      ]
+    : [isNull(helpCenterArticles.deletedAt)]
 
   if (categoryId) {
     conditions.push(eq(helpCenterArticles.categoryId, categoryId as HelpCenterCategoryId))
   }
 
-  if (status === 'published') {
-    conditions.push(isNotNull(helpCenterArticles.publishedAt))
-    conditions.push(lte(helpCenterArticles.publishedAt, now))
-  } else if (status === 'draft') {
-    conditions.push(isNull(helpCenterArticles.publishedAt))
+  if (!showDeleted) {
+    if (status === 'published') {
+      conditions.push(isNotNull(helpCenterArticles.publishedAt))
+      conditions.push(lte(helpCenterArticles.publishedAt, now))
+    } else if (status === 'draft') {
+      conditions.push(isNull(helpCenterArticles.publishedAt))
+    }
   }
 
   if (search?.trim()) {
@@ -623,6 +691,43 @@ export async function deleteArticle(id: HelpCenterArticleId): Promise<void> {
   if (result.length === 0) {
     throw new NotFoundError('ARTICLE_NOT_FOUND', `Article ${id} not found`)
   }
+}
+
+export async function restoreArticle(
+  id: HelpCenterArticleId
+): Promise<HelpCenterArticleWithCategory> {
+  console.log(`[domain:help-center] restoreArticle: id=${id}`)
+  const article = await db.query.helpCenterArticles.findFirst({
+    where: eq(helpCenterArticles.id, id),
+  })
+
+  if (!article) {
+    throw new NotFoundError('ARTICLE_NOT_FOUND', `Article ${id} not found`)
+  }
+
+  if (!article.deletedAt) {
+    throw new ValidationError('VALIDATION_ERROR', 'Article is not deleted')
+  }
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  if (new Date(article.deletedAt) < thirtyDaysAgo) {
+    throw new ValidationError(
+      'RESTORE_EXPIRED',
+      'Articles can only be restored within 30 days of deletion'
+    )
+  }
+
+  const [restored] = await db
+    .update(helpCenterArticles)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(eq(helpCenterArticles.id, id))
+    .returning()
+
+  if (!restored) {
+    throw new NotFoundError('ARTICLE_NOT_FOUND', `Article ${id} not found`)
+  }
+
+  return resolveArticleWithCategory(restored)
 }
 
 // ============================================================================

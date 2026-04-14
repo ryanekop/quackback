@@ -148,14 +148,17 @@ let getCategoryBySlug: typeof import('../help-center.service').getCategoryBySlug
 let createCategory: typeof import('../help-center.service').createCategory
 let updateCategory: typeof import('../help-center.service').updateCategory
 let deleteCategory: typeof import('../help-center.service').deleteCategory
+let restoreCategory: typeof import('../help-center.service').restoreCategory
 let getArticleById: typeof import('../help-center.service').getArticleById
 let createArticle: typeof import('../help-center.service').createArticle
 let updateArticle: typeof import('../help-center.service').updateArticle
 let publishArticle: typeof import('../help-center.service').publishArticle
 let unpublishArticle: typeof import('../help-center.service').unpublishArticle
 let deleteArticle: typeof import('../help-center.service').deleteArticle
+let restoreArticle: typeof import('../help-center.service').restoreArticle
 let recordArticleFeedback: typeof import('../help-center.service').recordArticleFeedback
 let listPublicArticlesForCategory: typeof import('../help-center.service').listPublicArticlesForCategory
+let listArticles: typeof import('../help-center.service').listArticles
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -171,14 +174,17 @@ beforeEach(async () => {
   createCategory = mod.createCategory
   updateCategory = mod.updateCategory
   deleteCategory = mod.deleteCategory
+  restoreCategory = mod.restoreCategory
   getArticleById = mod.getArticleById
   createArticle = mod.createArticle
   updateArticle = mod.updateArticle
   publishArticle = mod.publishArticle
   unpublishArticle = mod.unpublishArticle
   deleteArticle = mod.deleteArticle
+  restoreArticle = mod.restoreArticle
   recordArticleFeedback = mod.recordArticleFeedback
   listPublicArticlesForCategory = mod.listPublicArticlesForCategory
+  listArticles = mod.listArticles
 })
 
 describe('listCategories', () => {
@@ -1024,5 +1030,379 @@ describe('updateCategory hierarchy validation', () => {
     await expect(
       updateCategory('b' as HelpCenterCategoryId, { parentId: null })
     ).resolves.toBeDefined()
+  })
+})
+
+// ============================================================================
+// restoreCategory tests
+// ============================================================================
+
+describe('restoreCategory', () => {
+  function makeRestoredCategoryChain(captureSetCalls?: unknown[][]) {
+    const chain: Record<string, unknown> = {}
+    chain.set = vi.fn((...args: unknown[]) => {
+      if (captureSetCalls) captureSetCalls.push(args)
+      return chain
+    })
+    chain.where = vi.fn().mockReturnValue(chain)
+    chain.returning = vi.fn().mockResolvedValue([
+      {
+        id: 'helpcenter_category_1' as HelpCenterCategoryId,
+        slug: 'getting-started',
+        name: 'Getting Started',
+        description: null,
+        isPublic: true,
+        position: 0,
+        parentId: null,
+        icon: null,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date(),
+        deletedAt: null,
+      },
+    ])
+    return chain
+  }
+
+  it('restores a deleted category within the 30-day window', async () => {
+    const recentDeletedAt = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
+    mockCategoryFindFirst.mockResolvedValue({
+      id: 'helpcenter_category_1' as HelpCenterCategoryId,
+      slug: 'getting-started',
+      name: 'Getting Started',
+      deletedAt: recentDeletedAt,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+    })
+
+    const setCallsCapture: unknown[][] = []
+    const { db } = await import('@/lib/server/db')
+    vi.mocked(db.update).mockReturnValueOnce(makeRestoredCategoryChain(setCallsCapture) as never)
+
+    const result = await restoreCategory('helpcenter_category_1' as HelpCenterCategoryId)
+    expect(result.id).toBe('helpcenter_category_1')
+    expect(result.deletedAt).toBeNull()
+    expect(setCallsCapture.length).toBeGreaterThan(0)
+    const setArgs = setCallsCapture[0][0] as Record<string, unknown>
+    expect(setArgs.deletedAt).toBeNull()
+  })
+
+  it('throws NotFoundError for a non-existent category', async () => {
+    mockCategoryFindFirst.mockResolvedValue(null)
+    await expect(
+      restoreCategory('helpcenter_category_missing' as HelpCenterCategoryId)
+    ).rejects.toMatchObject({ code: 'CATEGORY_NOT_FOUND' })
+  })
+
+  it('throws ValidationError when category is not deleted', async () => {
+    mockCategoryFindFirst.mockResolvedValue({
+      id: 'helpcenter_category_1' as HelpCenterCategoryId,
+      slug: 'live',
+      name: 'Live Category',
+      deletedAt: null,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+    })
+    await expect(
+      restoreCategory('helpcenter_category_1' as HelpCenterCategoryId)
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+  })
+
+  it('throws ValidationError when category is outside the 30-day restore window', async () => {
+    const oldDeletedAt = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000) // 31 days ago
+    mockCategoryFindFirst.mockResolvedValue({
+      id: 'helpcenter_category_1' as HelpCenterCategoryId,
+      slug: 'old',
+      name: 'Old Category',
+      deletedAt: oldDeletedAt,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+    })
+    await expect(
+      restoreCategory('helpcenter_category_1' as HelpCenterCategoryId)
+    ).rejects.toMatchObject({ code: 'RESTORE_EXPIRED' })
+  })
+})
+
+// ============================================================================
+// restoreArticle tests
+// ============================================================================
+
+describe('restoreArticle', () => {
+  function makeRestoredArticleChain(captureSetCalls?: unknown[][]) {
+    const chain: Record<string, unknown> = {}
+    chain.set = vi.fn((...args: unknown[]) => {
+      if (captureSetCalls) captureSetCalls.push(args)
+      return chain
+    })
+    chain.where = vi.fn().mockReturnValue(chain)
+    chain.returning = vi.fn().mockResolvedValue([
+      {
+        id: 'helpcenter_article_1' as HelpCenterArticleId,
+        slug: 'how-to-start',
+        title: 'How to Start',
+        content: 'Some content',
+        contentJson: null,
+        categoryId: 'helpcenter_category_1',
+        principalId: 'principal_1',
+        publishedAt: null,
+        viewCount: 0,
+        helpfulCount: 0,
+        notHelpfulCount: 0,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date(),
+        deletedAt: null,
+      },
+    ])
+    return chain
+  }
+
+  it('restores a deleted article within the 30-day window', async () => {
+    const recentDeletedAt = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
+    mockArticleFindFirst.mockResolvedValue({
+      id: 'helpcenter_article_1' as HelpCenterArticleId,
+      slug: 'how-to-start',
+      title: 'How to Start',
+      content: 'Some content',
+      contentJson: null,
+      categoryId: 'helpcenter_category_1',
+      principalId: 'principal_1',
+      publishedAt: null,
+      viewCount: 0,
+      helpfulCount: 0,
+      notHelpfulCount: 0,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+      deletedAt: recentDeletedAt,
+    })
+
+    const setCallsCapture: unknown[][] = []
+    const { db } = await import('@/lib/server/db')
+    vi.mocked(db.update).mockReturnValueOnce(makeRestoredArticleChain(setCallsCapture) as never)
+
+    mockCategoryFindFirst.mockResolvedValue({
+      id: 'helpcenter_category_1',
+      slug: 'getting-started',
+      name: 'Getting Started',
+    })
+    mockPrincipalFindFirst.mockResolvedValue(null)
+
+    const result = await restoreArticle('helpcenter_article_1' as HelpCenterArticleId)
+    expect(result.id).toBe('helpcenter_article_1')
+    expect(result.deletedAt).toBeNull()
+    expect(setCallsCapture.length).toBeGreaterThan(0)
+    const setArgs = setCallsCapture[0][0] as Record<string, unknown>
+    expect(setArgs.deletedAt).toBeNull()
+  })
+
+  it('throws NotFoundError for a non-existent article', async () => {
+    mockArticleFindFirst.mockResolvedValue(null)
+    await expect(
+      restoreArticle('helpcenter_article_missing' as HelpCenterArticleId)
+    ).rejects.toMatchObject({ code: 'ARTICLE_NOT_FOUND' })
+  })
+
+  it('throws ValidationError when article is not deleted', async () => {
+    mockArticleFindFirst.mockResolvedValue({
+      id: 'helpcenter_article_1' as HelpCenterArticleId,
+      slug: 'live',
+      title: 'Live Article',
+      content: 'Content',
+      contentJson: null,
+      categoryId: 'helpcenter_category_1',
+      principalId: 'principal_1',
+      publishedAt: null,
+      viewCount: 0,
+      helpfulCount: 0,
+      notHelpfulCount: 0,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+      deletedAt: null, // not deleted
+    })
+    await expect(
+      restoreArticle('helpcenter_article_1' as HelpCenterArticleId)
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+  })
+
+  it('throws ValidationError when article is outside the 30-day restore window', async () => {
+    const oldDeletedAt = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000) // 31 days ago
+    mockArticleFindFirst.mockResolvedValue({
+      id: 'helpcenter_article_1' as HelpCenterArticleId,
+      slug: 'old',
+      title: 'Old Article',
+      content: 'Content',
+      contentJson: null,
+      categoryId: 'helpcenter_category_1',
+      principalId: 'principal_1',
+      publishedAt: null,
+      viewCount: 0,
+      helpfulCount: 0,
+      notHelpfulCount: 0,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+      deletedAt: oldDeletedAt,
+    })
+    await expect(
+      restoreArticle('helpcenter_article_1' as HelpCenterArticleId)
+    ).rejects.toMatchObject({ code: 'RESTORE_EXPIRED' })
+  })
+})
+
+// ============================================================================
+// listCategories({ showDeleted: true }) tests
+// ============================================================================
+
+describe('listCategories with showDeleted option', () => {
+  it('returns deleted categories within the 30-day window', async () => {
+    const recentDeletedAt = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+    mockCategoryFindMany.mockResolvedValue([
+      {
+        id: 'helpcenter_category_deleted' as HelpCenterCategoryId,
+        slug: 'deleted-cat',
+        name: 'Deleted Category',
+        description: null,
+        isPublic: true,
+        position: 0,
+        parentId: null,
+        icon: null,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: recentDeletedAt,
+        deletedAt: recentDeletedAt,
+      },
+    ])
+
+    mockSelectFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        groupBy: vi.fn().mockResolvedValue([]),
+      }),
+    })
+
+    const result = await listCategories({ showDeleted: true })
+    expect(result).toHaveLength(1)
+    expect(result[0].name).toBe('Deleted Category')
+    // findMany should have been called with deleted filter (not isNull)
+    expect(mockCategoryFindMany).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns 0 article count for deleted categories with no deleted articles', async () => {
+    const recentDeletedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+    mockCategoryFindMany.mockResolvedValue([
+      {
+        id: 'helpcenter_category_deleted' as HelpCenterCategoryId,
+        slug: 'deleted-cat',
+        name: 'Deleted Category',
+        description: null,
+        isPublic: true,
+        position: 0,
+        parentId: null,
+        icon: null,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: recentDeletedAt,
+        deletedAt: recentDeletedAt,
+      },
+    ])
+
+    mockSelectFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        groupBy: vi.fn().mockResolvedValue([]),
+      }),
+    })
+
+    const result = await listCategories({ showDeleted: true })
+    expect(result[0].articleCount).toBe(0)
+  })
+
+  it('returns live categories by default (no options)', async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      {
+        id: 'helpcenter_category_1' as HelpCenterCategoryId,
+        slug: 'live',
+        name: 'Live Category',
+        description: null,
+        isPublic: true,
+        position: 0,
+        parentId: null,
+        icon: null,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date(),
+        deletedAt: null,
+      },
+    ])
+
+    mockSelectFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        groupBy: vi.fn().mockResolvedValue([]),
+      }),
+    })
+
+    const result = await listCategories()
+    expect(result).toHaveLength(1)
+    expect(result[0].name).toBe('Live Category')
+  })
+})
+
+// ============================================================================
+// listArticles({ showDeleted: true }) tests
+// ============================================================================
+
+describe('listArticles with showDeleted option', () => {
+  it('returns deleted articles within the 30-day window', async () => {
+    const recentDeletedAt = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    mockArticleFindMany.mockResolvedValue([
+      {
+        id: 'helpcenter_article_1' as HelpCenterArticleId,
+        slug: 'deleted-article',
+        title: 'Deleted Article',
+        description: null,
+        position: null,
+        content: 'Some content',
+        categoryId: 'helpcenter_category_1',
+        principalId: null,
+        publishedAt: null,
+        viewCount: 0,
+        helpfulCount: 0,
+        notHelpfulCount: 0,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: recentDeletedAt,
+        deletedAt: recentDeletedAt,
+      },
+    ])
+
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'helpcenter_category_1', slug: 'cat', name: 'Category' },
+    ])
+
+    const result = await listArticles({ showDeleted: true })
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0].title).toBe('Deleted Article')
+  })
+
+  it('returns live articles by default', async () => {
+    mockArticleFindMany.mockResolvedValue([
+      {
+        id: 'helpcenter_article_2' as HelpCenterArticleId,
+        slug: 'live-article',
+        title: 'Live Article',
+        description: null,
+        position: null,
+        content: 'Content',
+        categoryId: 'helpcenter_category_1',
+        principalId: null,
+        publishedAt: new Date(),
+        viewCount: 0,
+        helpfulCount: 0,
+        notHelpfulCount: 0,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date(),
+        deletedAt: null,
+      },
+    ])
+
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'helpcenter_category_1', slug: 'cat', name: 'Category' },
+    ])
+
+    const result = await listArticles({})
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0].title).toBe('Live Article')
   })
 })

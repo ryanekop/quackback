@@ -8,6 +8,7 @@ export interface HelpCenterFilters {
   status: HelpCenterStatusFilter
   category?: string
   search?: string
+  showDeleted?: boolean
 }
 
 export function useHelpCenterFilters() {
@@ -19,8 +20,9 @@ export function useHelpCenterFilters() {
       status: search.status ?? 'all',
       category: search.category,
       search: search.search,
+      showDeleted: search.deleted,
     }),
-    [search.status, search.category, search.search]
+    [search.status, search.category, search.search, search.deleted]
   )
 
   const setFilters = useCallback(
@@ -38,6 +40,9 @@ export function useHelpCenterFilters() {
           ...('search' in updates && {
             search: updates.search || undefined,
           }),
+          ...('showDeleted' in updates && {
+            deleted: updates.showDeleted || undefined,
+          }),
         },
         replace: true,
       })
@@ -54,8 +59,8 @@ export function useHelpCenterFilters() {
   }, [navigate])
 
   const hasActiveFilters = useMemo(() => {
-    return filters.status !== 'all' || !!filters.search
-  }, [filters.status, filters.search])
+    return filters.status !== 'all' || !!filters.search || !!filters.showDeleted
+  }, [filters.status, filters.search, filters.showDeleted])
 
   return {
     filters,

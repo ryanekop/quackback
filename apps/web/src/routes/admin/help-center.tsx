@@ -9,6 +9,7 @@ const searchSchema = z.object({
   category: z.string().optional(),
   article: z.string().optional(), // Article ID for modal view
   search: z.string().optional(),
+  deleted: z.boolean().optional(),
 })
 
 export const Route = createFileRoute('/admin/help-center')({
