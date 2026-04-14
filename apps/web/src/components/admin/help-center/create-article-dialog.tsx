@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useKeyboardSubmit } from '@/lib/client/hooks/use-keyboard-submit'
 import { ModalFooter } from '@/components/shared/modal-footer'
 import { useForm } from 'react-hook-form'
@@ -35,6 +36,7 @@ export function CreateArticleDialog({
   const [categoryId, setCategoryId] = useState('')
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
   const createArticleMutation = useCreateArticle()
+  const navigate = useNavigate()
 
   const form = useForm({
     resolver: standardSchemaResolver(createArticleSchema),
@@ -70,11 +72,15 @@ export function CreateArticleDialog({
         contentJson: contentJson as TiptapContent | null,
       },
       {
-        onSuccess: () => {
+        onSuccess: (newArticle) => {
           handleOpenChange(false)
           form.reset()
           setContentJson(null)
           setCategoryId('')
+          void navigate({
+            to: '/admin/help-center/articles/$articleId',
+            params: { articleId: newArticle.id as string },
+          })
         },
       }
     )
