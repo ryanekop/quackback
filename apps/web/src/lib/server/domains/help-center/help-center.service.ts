@@ -39,10 +39,80 @@ import type {
   ArticleListResult,
 } from './help-center.types'
 import { generateArticleEmbedding } from './help-center-embedding.service'
+import {
+  MAX_CATEGORY_DEPTH,
+  collectDescendantIdsIncludingSelf,
+  getCategoryDepth,
+  getSubtreeMaxDepth,
+} from './category-tree'
 
 // ============================================================================
 // Categories
 // ============================================================================
+
+/**
+ * Validate that placing a subtree (rooted at `movingId`, or null for a brand-new
+ * category being created) under `newParentId` will not:
+ * - create a cycle (new parent is self or a descendant)
+ * - exceed MAX_CATEGORY_DEPTH for any node in the resulting subtree
+ *
+ * Callers must load the current full flat list of non-deleted categories.
+ */
+function validateHierarchyConstraint(params: {
+  flat: Array<{ id: string; parentId: string | null }>
+  movingId: string | null
+  newParentId: string | null
+}): void {
+  const { flat, movingId, newParentId } = params
+
+  if (newParentId === null) {
+    // Promoting to top-level is always safe for depth: new depth = 0.
+    // Still validate the subtree in case it has pre-existing over-depth descendants.
+    if (movingId !== null) {
+      const subtreeHeight = getSubtreeMaxDepth(flat, movingId)
+      if (subtreeHeight + 1 > MAX_CATEGORY_DEPTH) {
+        throw new ValidationError(
+          'VALIDATION_ERROR',
+          `Category subtree exceeds maximum depth of ${MAX_CATEGORY_DEPTH}`
+        )
+      }
+    }
+    return
+  }
+
+  // Self-parent
+  if (movingId !== null && newParentId === movingId) {
+    throw new ValidationError('VALIDATION_ERROR', 'A category cannot be its own parent')
+  }
+
+  // Cycle: new parent is a descendant of the moving category
+  if (movingId !== null) {
+    const descendants = collectDescendantIdsIncludingSelf(flat, movingId)
+    if (descendants.has(newParentId)) {
+      throw new ValidationError(
+        'VALIDATION_ERROR',
+        'A category cannot be moved under its own descendant (cycle)'
+      )
+    }
+  }
+
+  // Parent must exist
+  const parentExists = flat.some((c) => c.id === newParentId)
+  if (!parentExists) {
+    throw new NotFoundError('CATEGORY_NOT_FOUND', `Parent category ${newParentId} not found`)
+  }
+
+  // Depth: parent's depth + 1 (moving category) + its subtree height must stay within the cap
+  const parentDepth = getCategoryDepth(flat, newParentId)
+  const subtreeHeight = movingId === null ? 0 : getSubtreeMaxDepth(flat, movingId)
+  // Depths are 0-indexed; cap is MAX_CATEGORY_DEPTH levels (depths 0..MAX-1)
+  if (parentDepth + 1 + subtreeHeight > MAX_CATEGORY_DEPTH - 1) {
+    throw new ValidationError(
+      'VALIDATION_ERROR',
+      `Placing this category here would exceed the maximum depth of ${MAX_CATEGORY_DEPTH}`
+    )
+  }
+}
 
 export async function listCategories(): Promise<HelpCenterCategoryWithCount[]> {
   const now = new Date()
@@ -107,6 +177,18 @@ export async function createCategory(input: CreateCategoryInput): Promise<HelpCe
 
   const slug = input.slug?.trim() || slugify(name)
 
+  if (input.parentId !== undefined && input.parentId !== null) {
+    const flat = await db.query.helpCenterCategories.findMany({
+      where: isNull(helpCenterCategories.deletedAt),
+      columns: { id: true, parentId: true },
+    })
+    validateHierarchyConstraint({
+      flat: flat as Array<{ id: string; parentId: string | null }>,
+      movingId: null,
+      newParentId: input.parentId as string,
+    })
+  }
+
   const [category] = await db
     .insert(helpCenterCategories)
     .values({
@@ -133,9 +215,20 @@ export async function updateCategory(
   if (input.description !== undefined) updateData.description = input.description?.trim() || null
   if (input.isPublic !== undefined) updateData.isPublic = input.isPublic
   if (input.position !== undefined) updateData.position = input.position
-  if (input.parentId !== undefined)
-    updateData.parentId = (input.parentId as HelpCenterCategoryId) ?? null
   if (input.icon !== undefined) updateData.icon = input.icon ?? null
+
+  if (input.parentId !== undefined) {
+    const flat = await db.query.helpCenterCategories.findMany({
+      where: isNull(helpCenterCategories.deletedAt),
+      columns: { id: true, parentId: true },
+    })
+    validateHierarchyConstraint({
+      flat: flat as Array<{ id: string; parentId: string | null }>,
+      movingId: id,
+      newParentId: (input.parentId as string | null) ?? null,
+    })
+    updateData.parentId = (input.parentId as HelpCenterCategoryId) ?? null
+  }
 
   const [updated] = await db
     .update(helpCenterCategories)

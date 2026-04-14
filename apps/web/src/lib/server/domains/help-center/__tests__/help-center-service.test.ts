@@ -571,6 +571,10 @@ describe('deleteArticle', () => {
 
 describe('createCategory with parentId and icon', () => {
   it('passes parentId and icon to the database insert', async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'helpcenter_category_parent1', parentId: null },
+      { id: 'helpcenter_category_1', parentId: null },
+    ])
     const result = await createCategory({
       name: 'Child Category',
       parentId: 'helpcenter_category_parent1',
@@ -594,6 +598,10 @@ describe('createCategory with parentId and icon', () => {
 
 describe('updateCategory with parentId and icon', () => {
   it('passes parentId and icon in the update set', async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'helpcenter_category_parent1', parentId: null },
+      { id: 'helpcenter_category_1', parentId: null },
+    ])
     await updateCategory('helpcenter_category_1' as HelpCenterCategoryId, {
       parentId: 'helpcenter_category_parent1',
       icon: 'star',
@@ -605,6 +613,7 @@ describe('updateCategory with parentId and icon', () => {
   })
 
   it('allows clearing parentId and icon by passing null', async () => {
+    mockCategoryFindMany.mockResolvedValue([{ id: 'helpcenter_category_1', parentId: null }])
     await updateCategory('helpcenter_category_1' as HelpCenterCategoryId, {
       parentId: null,
       icon: null,
@@ -888,5 +897,90 @@ describe('recordArticleFeedback', () => {
 
     // Should NOT have inserted new feedback (no change)
     expect(insertValuesCalls).toHaveLength(0)
+  })
+})
+
+describe('createCategory hierarchy validation', () => {
+  it('rejects a parentId that already sits at the maximum depth', async () => {
+    // parent 'c' is at depth 2 (a -> b -> c); adding a child would make depth 3
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'a', parentId: null },
+      { id: 'b', parentId: 'a' },
+      { id: 'c', parentId: 'b' },
+    ])
+    await expect(createCategory({ name: 'Too Deep', parentId: 'c' })).rejects.toThrow(/depth/i)
+  })
+
+  it('allows a parentId at depth 1 (new category would land at depth 2)', async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'a', parentId: null },
+      { id: 'b', parentId: 'a' },
+    ])
+    await expect(createCategory({ name: 'OK', parentId: 'b' })).resolves.toBeDefined()
+  })
+
+  it('allows a null parentId (new top-level category)', async () => {
+    await expect(createCategory({ name: 'Top' })).resolves.toBeDefined()
+  })
+
+  it('rejects a parentId that does not exist', async () => {
+    mockCategoryFindMany.mockResolvedValue([])
+    await expect(createCategory({ name: 'Orphan', parentId: 'ghost' })).rejects.toThrow(
+      /not found/i
+    )
+  })
+})
+
+describe('updateCategory hierarchy validation', () => {
+  it('rejects moving a category under itself', async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'a', parentId: null },
+      { id: 'b', parentId: 'a' },
+    ])
+    await expect(updateCategory('a' as HelpCenterCategoryId, { parentId: 'a' })).rejects.toThrow(
+      /parent/i
+    )
+  })
+
+  it('rejects moving a category under its own descendant', async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'a', parentId: null },
+      { id: 'b', parentId: 'a' },
+      { id: 'c', parentId: 'b' },
+    ])
+    // Moving 'a' under 'c' would create a cycle
+    await expect(updateCategory('a' as HelpCenterCategoryId, { parentId: 'c' })).rejects.toThrow(
+      /cycle/i
+    )
+  })
+
+  it('rejects moving a subtree such that the deepest leaf would exceed MAX_CATEGORY_DEPTH', async () => {
+    // Tree:
+    //   a (depth 0)
+    //     b (depth 1)
+    //       c (depth 2)
+    //   x (depth 0)
+    //     y (depth 1)
+    // Moving 'b' (subtree height 1) under 'y' (depth 1) would put b at depth 2 and c at depth 3
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'a', parentId: null },
+      { id: 'b', parentId: 'a' },
+      { id: 'c', parentId: 'b' },
+      { id: 'x', parentId: null },
+      { id: 'y', parentId: 'x' },
+    ])
+    await expect(updateCategory('b' as HelpCenterCategoryId, { parentId: 'y' })).rejects.toThrow(
+      /depth/i
+    )
+  })
+
+  it('allows setting parentId to null (promoting to top-level)', async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      { id: 'a', parentId: null },
+      { id: 'b', parentId: 'a' },
+    ])
+    await expect(
+      updateCategory('b' as HelpCenterCategoryId, { parentId: null })
+    ).resolves.toBeDefined()
   })
 })
