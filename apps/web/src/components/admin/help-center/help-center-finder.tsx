@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { PlusIcon, FolderPlusIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
+import {
+  PlusIcon,
+  FolderPlusIcon,
+  QuestionMarkCircleIcon,
+  PencilIcon,
+  TrashIcon,
+  EllipsisHorizontalIcon,
+} from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/shared/spinner'
 import { EmptyState } from '@/components/shared/empty-state'
@@ -8,8 +15,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { HelpCenterBreadcrumbs } from '@/components/help-center/help-center-breadcrumbs'
 import { buildAdminCategoryBreadcrumbs } from './help-center-utils-admin'
 import { HelpCenterListItem } from './help-center-list-item'
@@ -17,11 +26,13 @@ import { HelpCenterSubcategoryCard } from './help-center-subcategory-card'
 import { CreateArticleDialog } from './create-article-dialog'
 import { CategoryFormDialog } from './category-form-dialog'
 import { helpCenterQueries } from '@/lib/client/queries/help-center'
+import { useDeleteCategory } from '@/lib/client/mutations/help-center'
+import { collectDescendantIds } from '@/lib/server/domains/help-center/category-tree'
 import { useHelpCenterFilters } from './use-help-center-filters'
 import { useInfiniteScroll } from '@/lib/client/hooks/use-infinite-scroll'
 import { AdminListHeader } from '@/components/admin/admin-list-header'
 import { useDebouncedSearch } from '@/lib/client/hooks/use-debounced-search'
-import type { HelpCenterArticleId } from '@quackback/ids'
+import type { HelpCenterArticleId, HelpCenterCategoryId } from '@quackback/ids'
 
 interface HelpCenterFinderProps {
   onEditArticle: (id: HelpCenterArticleId) => void
@@ -32,7 +43,27 @@ export function HelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterF
   const { filters, setFilters } = useHelpCenterFilters()
 
   const [createArticleOpen, setCreateArticleOpen] = useState(false)
-  const [createCategoryOpen, setCreateCategoryOpen] = useState(false)
+
+  // Category dialog state — shared for both "new" and "edit" flows
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
+  const [categoryDialogParent, setCategoryDialogParent] = useState<HelpCenterCategoryId | null>(
+    null
+  )
+  const [categoryDialogInitialValues, setCategoryDialogInitialValues] = useState<
+    | {
+        id: HelpCenterCategoryId
+        name: string
+        description: string | null
+        icon: string | null
+        isPublic: boolean
+        parentId: HelpCenterCategoryId | null
+      }
+    | undefined
+  >(undefined)
+
+  // Delete category state
+  const deleteCategoryMutation = useDeleteCategory()
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const { data: allCategories = [] } = useQuery(helpCenterQueries.categories())
 
@@ -85,6 +116,81 @@ export function HelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterF
   const title = currentCategory?.name ?? 'Help Center'
   const titleIcon = currentCategory?.icon ?? null
 
+  // ---------------------------------------------------------------------------
+  // Dialog helpers
+  // ---------------------------------------------------------------------------
+
+  function openNewCategoryDialog(parentId: HelpCenterCategoryId | null) {
+    setCategoryDialogInitialValues(undefined)
+    setCategoryDialogParent(parentId)
+    setCategoryDialogOpen(true)
+  }
+
+  function openEditCategoryDialog() {
+    if (!currentCategory) return
+    setCategoryDialogInitialValues({
+      id: currentCategory.id,
+      name: currentCategory.name,
+      description: currentCategory.description,
+      icon: currentCategory.icon,
+      isPublic: currentCategory.isPublic,
+      parentId: currentCategory.parentId,
+    })
+    setCategoryDialogParent(null)
+    setCategoryDialogOpen(true)
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cascade delete impact
+  // ---------------------------------------------------------------------------
+
+  const cascadeImpact = useMemo(() => {
+    if (!currentCategory) return { descendantCount: 0, articleCount: 0 }
+    const flat = allCategories as Array<{
+      id: string
+      parentId: string | null
+      articleCount: number
+    }>
+    const descendantIds = collectDescendantIds(flat, currentCategory.id)
+    const subtreeIds = new Set<string>([currentCategory.id, ...descendantIds])
+    let totalArticles = 0
+    for (const cat of flat) {
+      if (subtreeIds.has(cat.id)) totalArticles += cat.articleCount
+    }
+    return { descendantCount: descendantIds.size, articleCount: totalArticles }
+  }, [currentCategory, allCategories])
+
+  const deleteDescription = useMemo(() => {
+    if (!currentCategory) return ''
+    const parts: string[] = []
+    if (cascadeImpact.descendantCount > 0) {
+      parts.push(
+        `${cascadeImpact.descendantCount} sub-categor${cascadeImpact.descendantCount === 1 ? 'y' : 'ies'}`
+      )
+    }
+    if (cascadeImpact.articleCount > 0) {
+      parts.push(
+        `${cascadeImpact.articleCount} article${cascadeImpact.articleCount === 1 ? '' : 's'}`
+      )
+    }
+    if (parts.length === 0) {
+      return `This will permanently delete "${currentCategory.name}". This cannot be undone from the UI.`
+    }
+    return `This will delete "${currentCategory.name}" along with ${parts.join(' and ')}. Everything can be restored from the database, but the UI provides no restore flow.`
+  }, [currentCategory, cascadeImpact])
+
+  async function handleDeleteCategory() {
+    if (!currentCategory) return
+    const parentId = currentCategory.parentId ?? null
+    await deleteCategoryMutation.mutateAsync(currentCategory.id)
+    setConfirmDeleteOpen(false)
+    setFilters({ category: parentId ?? undefined })
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+
   return (
     <div className="max-w-5xl mx-auto w-full flex flex-col flex-1 min-h-0">
       {/* Breadcrumbs + search header */}
@@ -108,14 +214,20 @@ export function HelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterF
         </h1>
         <div className="flex items-center gap-2">
           {currentCategory ? (
-            <NewInsideDropdown
-              onNewArticle={() => setCreateArticleOpen(true)}
-              onNewSubcategory={() => setCreateCategoryOpen(true)}
-            />
+            <>
+              <CategoryActionsDropdown
+                onEdit={openEditCategoryDialog}
+                onDelete={() => setConfirmDeleteOpen(true)}
+              />
+              <NewInsideDropdown
+                onNewArticle={() => setCreateArticleOpen(true)}
+                onNewSubcategory={() => openNewCategoryDialog(currentCategory.id)}
+              />
+            </>
           ) : (
             <NewAtRootDropdown
               onNewArticle={() => setCreateArticleOpen(true)}
-              onNewCategory={() => setCreateCategoryOpen(true)}
+              onNewCategory={() => openNewCategoryDialog(null)}
             />
           )}
         </div>
@@ -209,10 +321,57 @@ export function HelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterF
         )}
       </section>
 
-      {/* Dialogs — wired but without parent pre-filling (Task 5B) */}
+      {/* Dialogs */}
       <CreateArticleDialog open={createArticleOpen} onOpenChange={setCreateArticleOpen} />
-      <CategoryFormDialog open={createCategoryOpen} onOpenChange={setCreateCategoryOpen} />
+      <CategoryFormDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        initialValues={categoryDialogInitialValues}
+        defaultParentId={categoryDialogInitialValues ? undefined : categoryDialogParent}
+      />
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title={`Delete "${currentCategory?.name ?? ''}"?`}
+        description={deleteDescription}
+        confirmLabel="Delete"
+        variant="destructive"
+        isPending={deleteCategoryMutation.isPending}
+        onConfirm={handleDeleteCategory}
+      />
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+interface CategoryActionsDropdownProps {
+  onEdit: () => void
+  onDelete: () => void
+}
+
+function CategoryActionsDropdown({ onEdit, onDelete }: CategoryActionsDropdownProps) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm" variant="outline">
+          <EllipsisHorizontalIcon className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onEdit}>
+          <PencilIcon className="h-4 w-4 mr-2" />
+          Edit category
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+          <TrashIcon className="h-4 w-4 mr-2" />
+          Delete category
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

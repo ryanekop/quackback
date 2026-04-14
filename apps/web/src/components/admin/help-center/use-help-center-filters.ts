@@ -54,8 +54,8 @@ export function useHelpCenterFilters() {
   }, [navigate])
 
   const hasActiveFilters = useMemo(() => {
-    return filters.status !== 'all' || !!filters.category
-  }, [filters.status, filters.category])
+    return filters.status !== 'all' || !!filters.search
+  }, [filters.status, filters.search])
 
   return {
     filters,
