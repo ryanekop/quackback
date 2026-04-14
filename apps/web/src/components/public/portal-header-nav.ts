@@ -19,20 +19,14 @@ export type PortalNavItem = (typeof NAV_ITEMS_BASE)[number] | typeof NAV_ITEM_HE
 
 /**
  * Returns the nav items shown in the portal header.
- * On the help center subdomain we show only the Help tab so the standalone
- * experience stays focused. Elsewhere we show feedback/roadmap/changelog and
- * append a Help tab when the help center is enabled.
+ * Feedback/roadmap/changelog are always shown; a Help tab is appended when
+ * the help center feature is enabled.
  */
 export function buildNavItems({
   helpCenterEnabled,
-  helpCenterHost,
 }: {
   helpCenterEnabled: boolean
-  helpCenterHost: boolean
 }): readonly PortalNavItem[] {
-  if (helpCenterHost) {
-    return helpCenterEnabled ? [NAV_ITEM_HELP] : []
-  }
   if (helpCenterEnabled) {
     return [...NAV_ITEMS_BASE, NAV_ITEM_HELP]
   }
