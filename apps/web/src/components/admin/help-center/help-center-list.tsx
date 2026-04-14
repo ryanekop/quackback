@@ -12,7 +12,6 @@ import type { HelpCenterArticleId } from '@quackback/ids'
 
 export function HelpCenterList() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const search = Route.useSearch()
   const { filters, setFilters, hasActiveFilters } = useHelpCenterFilters()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [articleToDelete, setArticleToDelete] = useState<HelpCenterArticleId | null>(null)
@@ -46,12 +45,12 @@ export function HelpCenterList() {
     (id: HelpCenterArticleId) => {
       startTransition(() => {
         void navigate({
-          to: '/admin/help-center',
-          search: { ...search, article: id },
+          to: '/admin/help-center/articles/$articleId',
+          params: { articleId: id },
         })
       })
     },
-    [navigate, search]
+    [navigate]
   )
 
   const handleDelete = (id: HelpCenterArticleId) => {
