@@ -389,10 +389,31 @@ export async function listArticles(params: ListArticlesParams): Promise<ArticleL
     }
   }
 
+  // Exclude heavy columns (contentJson, embedding, searchVector) from the list
+  // query — the list UI only needs metadata + a short preview of `content`.
+  // See docs/superpowers/plans/2026-04-14-help-center-category-hierarchy.md for
+  // the perf audit that motivated this.
   const articles = await db.query.helpCenterArticles.findMany({
     where: and(...conditions),
     orderBy: [desc(helpCenterArticles.createdAt), desc(helpCenterArticles.id)],
     limit: limit + 1,
+    columns: {
+      id: true,
+      categoryId: true,
+      slug: true,
+      title: true,
+      description: true,
+      position: true,
+      content: true,
+      principalId: true,
+      publishedAt: true,
+      viewCount: true,
+      helpfulCount: true,
+      notHelpfulCount: true,
+      createdAt: true,
+      updatedAt: true,
+      deletedAt: true,
+    },
   })
 
   const hasMore = articles.length > limit
@@ -427,6 +448,9 @@ export async function listArticles(params: ListArticlesParams): Promise<ArticleL
     const author = article.principalId ? authorMap.get(article.principalId) : null
     return {
       ...article,
+      // contentJson is omitted from the list query for performance — consumers
+      // that need the full JSON (e.g. article detail page) call getArticleById.
+      contentJson: null,
       category: cat
         ? { id: cat.id as HelpCenterCategoryId, slug: cat.slug, name: cat.name }
         : { id: article.categoryId as HelpCenterCategoryId, slug: '', name: 'Unknown' },
