@@ -8,7 +8,7 @@ import { HelpCenterFinder } from './help-center-finder'
 import { CategoryFormDialog } from './category-form-dialog'
 import { useHelpCenterFilters } from './use-help-center-filters'
 import type { HelpCenterStatusFilter } from './use-help-center-filters'
-import type { TreeCategory } from './help-center-category-tree'
+import type { CategoryActions, TreeCategory } from './help-center-category-tree'
 import { useDeleteArticle, useDeleteCategory } from '@/lib/client/mutations/help-center'
 import { helpCenterQueries } from '@/lib/client/queries/help-center'
 import { collectDescendantIds } from '@/lib/server/domains/help-center/category-tree'
@@ -86,18 +86,15 @@ export function HelpCenterList() {
     }
   }
 
-  // Category dialog handlers — shared between sidebar tree and main finder.
-  const handleNewCategory = useCallback((parentId: HelpCenterCategoryId | null) => {
-    setCategoryDialogState({ mode: 'new', parentId })
-  }, [])
-
-  const handleEditCategory = useCallback((category: TreeCategory) => {
-    setCategoryDialogState({ mode: 'edit', category })
-  }, [])
-
-  const handleDeleteCategoryRequest = useCallback((category: TreeCategory) => {
-    setDeleteCategoryTarget(category)
-  }, [])
+  // Category CRUD actions — shared between sidebar tree and main finder.
+  const categoryActions = useMemo<CategoryActions>(
+    () => ({
+      onNew: (parentId) => setCategoryDialogState({ mode: 'new', parentId }),
+      onEdit: (category) => setCategoryDialogState({ mode: 'edit', category }),
+      onDelete: (category) => setDeleteCategoryTarget(category),
+    }),
+    []
+  )
 
   // Cascade impact computed lazily for the delete confirm dialog.
   const cascadeImpact = useMemo(() => {
@@ -156,9 +153,7 @@ export function HelpCenterList() {
             onStatusChange={(status) => setFilters({ status: status as HelpCenterStatusFilter })}
             selectedCategoryId={filters.category}
             onSelectCategory={(id) => setFilters({ category: id ?? undefined })}
-            onNewCategory={handleNewCategory}
-            onEditCategory={handleEditCategory}
-            onDeleteCategory={handleDeleteCategoryRequest}
+            categoryActions={categoryActions}
             showDeleted={filters.showDeleted}
             onShowDeletedChange={(showDeleted) =>
               setFilters({ showDeleted: showDeleted ?? undefined })
@@ -170,9 +165,7 @@ export function HelpCenterList() {
         <HelpCenterFinder
           onEditArticle={handleEdit}
           onDeleteArticle={handleDeleteArticle}
-          onNewCategory={handleNewCategory}
-          onEditCategory={handleEditCategory}
-          onDeleteCategory={handleDeleteCategoryRequest}
+          categoryActions={categoryActions}
         />
       </InboxLayout>
 

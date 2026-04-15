@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { ChevronRightIcon } from '@heroicons/react/20/solid'
 import { PlusIcon, PencilIcon, TrashIcon, FolderPlusIcon } from '@heroicons/react/16/solid'
 import { cn } from '@/lib/shared/utils'
@@ -18,13 +18,18 @@ export interface TreeCategory {
   articleCount: number
 }
 
+/** Handlers for category CRUD, shared between the sidebar tree and the main finder. */
+export interface CategoryActions {
+  onNew: (parentId: HelpCenterCategoryId | null) => void
+  onEdit: (category: TreeCategory) => void
+  onDelete: (category: TreeCategory) => void
+}
+
 interface HelpCenterCategoryTreeProps {
   categories: TreeCategory[]
   selectedId: string | undefined
   onNavigate: (id: HelpCenterCategoryId | null) => void
-  onNewCategory: (parentId: HelpCenterCategoryId | null) => void
-  onEditCategory: (category: TreeCategory) => void
-  onDeleteCategory: (category: TreeCategory) => void
+  actions: CategoryActions
 }
 
 interface TreeNode {
@@ -57,9 +62,7 @@ export function HelpCenterCategoryTree({
   categories,
   selectedId,
   onNavigate,
-  onNewCategory,
-  onEditCategory,
-  onDeleteCategory,
+  actions,
 }: HelpCenterCategoryTreeProps) {
   const tree = useMemo(() => buildTree(categories), [categories])
 
@@ -69,6 +72,11 @@ export function HelpCenterCategoryTree({
     const chain = buildAncestorChain(categories, selectedId)
     return new Set(chain.map((c) => c.id))
   }, [categories, selectedId])
+
+  // Ref mirror of ancestorIds so the updater passed to setOverrides can read
+  // the current value without capturing a stale closure across renders.
+  const ancestorIdsRef = useRef(ancestorIds)
+  ancestorIdsRef.current = ancestorIds
 
   // Transient expansion overrides. Resets on unmount by design — matches how
   // file explorers behave when you navigate across a session.
@@ -83,7 +91,7 @@ export function HelpCenterCategoryTree({
   function toggle(id: string) {
     setOverrides((prev) => {
       const next = new Map(prev)
-      const base = next.get(id) ?? ancestorIds.has(id)
+      const base = prev.get(id) ?? ancestorIdsRef.current.has(id)
       next.set(id, !base)
       return next
     })
@@ -104,9 +112,9 @@ export function HelpCenterCategoryTree({
           canAddSub={depth + 1 < MAX_CATEGORY_DEPTH}
           onToggle={() => toggle(category.id)}
           onNavigate={() => onNavigate(category.id)}
-          onAddSub={() => onNewCategory(category.id)}
-          onEdit={() => onEditCategory(category)}
-          onDelete={() => onDeleteCategory(category)}
+          onAddSub={() => actions.onNew(category.id)}
+          onEdit={() => actions.onEdit(category)}
+          onDelete={() => actions.onDelete(category)}
         />
         {expanded && hasChildren && <div>{children.map(renderNode)}</div>}
       </div>
@@ -120,7 +128,7 @@ export function HelpCenterCategoryTree({
       </div>
       <button
         type="button"
-        onClick={() => onNewCategory(null)}
+        onClick={() => actions.onNew(null)}
         className="mt-1 w-full flex items-center gap-1.5 px-2 h-7 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
       >
         <PlusIcon className="h-3 w-3 shrink-0" />

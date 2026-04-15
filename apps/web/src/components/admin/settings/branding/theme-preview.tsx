@@ -51,8 +51,6 @@ function getGoogleFontsUrl(fontFamily: string | undefined): string | null {
 
 interface ThemePreviewProps {
   previewMode: 'light' | 'dark'
-  logoUrl?: string | null
-  workspaceName?: string
   /** Parsed CSS variables from the theme CSS (source of truth) */
   cssVariables: ParsedCssVariables
 }
@@ -68,12 +66,7 @@ const COMPONENT_ALIASES: Record<string, string> = {
 
 const DEFAULT_FONT = '"Inter", ui-sans-serif, system-ui, sans-serif'
 
-export function ThemePreview({
-  previewMode,
-  logoUrl: _logoUrl,
-  workspaceName: _workspaceName,
-  cssVariables,
-}: ThemePreviewProps) {
+export function ThemePreview({ previewMode, cssVariables }: ThemePreviewProps) {
   const modeVars = cssVariables[previewMode === 'dark' ? 'dark' : 'light']
 
   const cssVars = useMemo(() => ({ ...modeVars, ...COMPONENT_ALIASES }), [modeVars])

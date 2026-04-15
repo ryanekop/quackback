@@ -24,7 +24,7 @@ import {
 import { cn } from '@/lib/shared/utils'
 import { HelpCenterListItem } from './help-center-list-item'
 import { CreateArticleDialog } from './create-article-dialog'
-import type { TreeCategory } from './help-center-category-tree'
+import type { CategoryActions } from './help-center-category-tree'
 import { helpCenterQueries } from '@/lib/client/queries/help-center'
 import { useRestoreCategory, useRestoreArticle } from '@/lib/client/mutations/help-center'
 import { buildAncestorChain } from '@/lib/server/domains/help-center/category-tree'
@@ -34,7 +34,7 @@ import { useInfiniteScroll } from '@/lib/client/hooks/use-infinite-scroll'
 import { AdminListHeader } from '@/components/admin/admin-list-header'
 import { useDebouncedSearch } from '@/lib/client/hooks/use-debounced-search'
 import { TimeAgo } from '@/components/ui/time-ago'
-import type { HelpCenterArticleId, HelpCenterCategoryId } from '@quackback/ids'
+import type { HelpCenterArticleId } from '@quackback/ids'
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
@@ -62,9 +62,7 @@ function HelpCenterListSkeleton() {
 interface HelpCenterFinderProps {
   onEditArticle: (id: HelpCenterArticleId) => void
   onDeleteArticle: (id: HelpCenterArticleId) => void
-  onNewCategory: (parentId: HelpCenterCategoryId | null) => void
-  onEditCategory: (category: TreeCategory) => void
-  onDeleteCategory: (category: TreeCategory) => void
+  categoryActions: CategoryActions
 }
 
 export function HelpCenterFinder(props: HelpCenterFinderProps) {
@@ -80,9 +78,7 @@ export function HelpCenterFinder(props: HelpCenterFinderProps) {
 function LiveHelpCenterFinder({
   onEditArticle,
   onDeleteArticle,
-  onNewCategory,
-  onEditCategory,
-  onDeleteCategory,
+  categoryActions,
 }: HelpCenterFinderProps) {
   const { filters, setFilters, clearFilters, hasActiveFilters } = useHelpCenterFilters()
 
@@ -136,18 +132,18 @@ function LiveHelpCenterFinder({
   const headerActions = currentCategory ? (
     <div className="flex items-center gap-1">
       <CategoryActionsDropdown
-        onEdit={() => onEditCategory(currentCategory)}
-        onDelete={() => onDeleteCategory(currentCategory)}
+        onEdit={() => categoryActions.onEdit(currentCategory)}
+        onDelete={() => categoryActions.onDelete(currentCategory)}
       />
       <NewInsideDropdown
         onNewArticle={() => setCreateArticleOpen(true)}
-        onNewSubcategory={() => onNewCategory(currentCategory.id)}
+        onNewSubcategory={() => categoryActions.onNew(currentCategory.id)}
       />
     </div>
   ) : (
     <NewAtRootDropdown
       onNewArticle={() => setCreateArticleOpen(true)}
-      onNewCategory={() => onNewCategory(null)}
+      onNewCategory={() => categoryActions.onNew(null)}
     />
   )
 
@@ -192,7 +188,7 @@ function LiveHelpCenterFinder({
         <SubCategoryChipRow
           categories={directChildren}
           onNavigate={(id) => setFilters({ category: id })}
-          onNew={() => onNewCategory(currentCategory?.id ?? null)}
+          onNew={() => categoryActions.onNew(currentCategory?.id ?? null)}
           canAddSub={!currentCategory || ancestorChain.length < 3}
         />
 
@@ -267,8 +263,9 @@ function LiveHelpCenterFinder({
               ))}
             </div>
           )}
+          <div ref={loadMoreRef} />
           {filters.category && hasNextPage && (
-            <div ref={loadMoreRef} className="border-t border-border/50">
+            <div className="border-t border-border/50">
               <button
                 type="button"
                 onClick={() => fetchNextPage()}

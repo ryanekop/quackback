@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/shared/utils'
 import { FilterSection } from '@/components/shared/filter-section'
 import { FilterList } from '@/components/admin/feedback/single-select-filter-list'
-import { HelpCenterCategoryTree, type TreeCategory } from './help-center-category-tree'
+import { HelpCenterCategoryTree, type CategoryActions } from './help-center-category-tree'
 import { helpCenterQueries } from '@/lib/client/queries/help-center'
 import type { HelpCenterStatusFilter } from './use-help-center-filters'
 import type { HelpCenterCategoryId } from '@quackback/ids'
@@ -12,9 +12,7 @@ interface HelpCenterFiltersProps {
   onStatusChange: (status: HelpCenterStatusFilter) => void
   selectedCategoryId: string | undefined
   onSelectCategory: (id: HelpCenterCategoryId | null) => void
-  onNewCategory: (parentId: HelpCenterCategoryId | null) => void
-  onEditCategory: (category: TreeCategory) => void
-  onDeleteCategory: (category: TreeCategory) => void
+  categoryActions: CategoryActions
   showDeleted?: boolean
   onShowDeletedChange?: (showDeleted: boolean | undefined) => void
 }
@@ -30,9 +28,7 @@ export function HelpCenterFiltersPanel({
   onStatusChange,
   selectedCategoryId,
   onSelectCategory,
-  onNewCategory,
-  onEditCategory,
-  onDeleteCategory,
+  categoryActions,
   showDeleted,
   onShowDeletedChange,
 }: HelpCenterFiltersProps) {
@@ -79,9 +75,7 @@ export function HelpCenterFiltersPanel({
           categories={categories}
           selectedId={selectedCategoryId}
           onNavigate={onSelectCategory}
-          onNewCategory={onNewCategory}
-          onEditCategory={onEditCategory}
-          onDeleteCategory={onDeleteCategory}
+          actions={categoryActions}
         />
       </FilterSection>
 
