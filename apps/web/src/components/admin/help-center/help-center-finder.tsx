@@ -128,7 +128,7 @@ function LiveHelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterFind
             allCategories,
             categoryId: filters.category,
           })
-        : [{ label: 'Help Center', href: '/admin/help-center' }],
+        : [],
     [allCategories, filters.category]
   )
 
@@ -159,7 +159,6 @@ function LiveHelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterFind
 
   const articles = data?.pages.flatMap((page) => page.items) ?? []
 
-  const title = currentCategory?.name ?? 'Help Center'
   const titleIcon = currentCategory?.icon ?? null
 
   // ---------------------------------------------------------------------------
@@ -279,19 +278,21 @@ function LiveHelpCenterFinder({ onEditArticle, onDeleteArticle }: HelpCenterFind
         />
       </AdminListHeader>
 
-      {/* Category/page title + action buttons */}
-      <div className="px-3 pb-3 flex items-center justify-between">
-        <h1 className="text-lg font-semibold flex items-center gap-2">
-          {titleIcon && <span>{titleIcon}</span>}
-          {title}
-        </h1>
-        {currentCategory && (
+      {/* Category page title + action buttons — only shown when inside a category.
+          At the root view, the categories list below IS the page, so a top-level
+          "Help Center" header would just be redundant noise above it. */}
+      {currentCategory && (
+        <div className="px-3 pb-3 flex items-center justify-between">
+          <h1 className="text-lg font-semibold flex items-center gap-2">
+            {titleIcon && <span>{titleIcon}</span>}
+            {currentCategory.name}
+          </h1>
           <CategoryActionsDropdown
             onEdit={openEditCategoryDialog}
             onDelete={() => setConfirmDeleteOpen(true)}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* When viewing a specific category: show direct articles, then sub-categories as collapsible groups */}
       {currentCategory ? (
@@ -457,10 +458,7 @@ function DeletedItemsView() {
   const restoreCategoryMutation = useRestoreCategory()
   const restoreArticleMutation = useRestoreArticle()
 
-  const breadcrumbs = [
-    { label: 'Help Center', href: '/admin/help-center' },
-    { label: 'Deleted', href: '/admin/help-center' },
-  ]
+  const breadcrumbs = [{ label: 'Deleted' }]
 
   return (
     <div className="max-w-5xl mx-auto w-full">

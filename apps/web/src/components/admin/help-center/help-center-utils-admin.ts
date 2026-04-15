@@ -25,16 +25,18 @@ function buildAncestorChain<T extends CategoryLike>(flat: T[], id: string): T[] 
 /**
  * Admin-scoped breadcrumbs. Each non-final crumb links to the admin help
  * center page with `?category=<id>` in the search params.
+ *
+ * The "Help Center" prefix is intentionally omitted — the user is already on
+ * the admin help center page, and a standalone top-level "Help Center" entry
+ * is visual noise. When the category is unknown or at the root, the returned
+ * array is empty and the caller can skip rendering the breadcrumb row.
  */
 export function buildAdminCategoryBreadcrumbs<T extends CategoryLike>(params: {
   allCategories: T[]
   categoryId: string
 }): Array<{ label: string; href?: string }> {
   const chain = buildAncestorChain(params.allCategories, params.categoryId)
-  const items: Array<{ label: string; href?: string }> = [
-    { label: 'Help Center', href: '/admin/help-center' },
-  ]
-  if (chain.length === 0) return items
+  const items: Array<{ label: string; href?: string }> = []
   chain.forEach((cat, index) => {
     const isLast = index === chain.length - 1
     if (isLast) {

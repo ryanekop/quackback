@@ -4,11 +4,20 @@ import { useForm } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { Loader2 } from 'lucide-react'
-import { ArrowLeftIcon, Cog6ToothIcon } from '@heroicons/react/24/solid'
+import { ArrowLeftIcon } from '@heroicons/react/24/solid'
 import { Button } from '@/components/ui/button'
-import { Form } from '@/components/ui/form'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
+import { FormError } from '@/components/shared/form-error'
+import { useImageUpload } from '@/lib/client/hooks/use-image-upload'
 import { useKeyboardSubmit } from '@/lib/client/hooks/use-keyboard-submit'
 import { updateArticleSchema } from '@/lib/shared/schemas/help-center'
 import type { TiptapContent } from '@/lib/shared/schemas/posts'
@@ -19,11 +28,7 @@ import {
 } from '@/lib/client/mutations/help-center'
 import { helpCenterQueries } from '@/lib/client/queries/help-center'
 import { getInitialContentJson } from '@/components/admin/feedback/detail/post-utils'
-import { HelpCenterFormFields } from './help-center-form-fields'
-import {
-  HelpCenterMetadataSidebar,
-  HelpCenterMetadataSidebarContent,
-} from './help-center-metadata-sidebar'
+import { cn } from '@/lib/shared/utils'
 import type { HelpCenterArticleId } from '@quackback/ids'
 import type { JSONContent } from '@tiptap/react'
 
@@ -34,16 +39,17 @@ interface HelpCenterArticleEditorProps {
 /**
  * Full-page editor for a help center article.
  *
- * This is the page-mode counterpart to the old `HelpCenterArticleModal`.
- * The TipTap editor gets the full viewport width, which gives bubble menus,
- * slash menus, and table editing enough room to render without clipping.
+ * Layout is inspired by Intercom / Notion: one slim top bar with
+ * breadcrumbs + compact metadata controls + save/publish action; the
+ * editing surface below is centered and reader-width so the admin view
+ * mirrors how the article renders on the portal.
  */
 export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorProps) {
   const navigate = useNavigate()
+  const { upload: uploadImage } = useImageUpload({ prefix: 'help-center' })
   const [contentJson, setContentJson] = useState<JSONContent | null>(null)
   const [categoryId, setCategoryId] = useState('')
   const [isPublished, setIsPublished] = useState(false)
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
   const [hasInitialized, setHasInitialized] = useState(false)
 
   const updateArticleMutation = useUpdateArticle()
@@ -53,12 +59,14 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
   const { data: article, isLoading } = useQuery({
     ...helpCenterQueries.articleDetail(articleId),
   })
+  const { data: categories = [] } = useQuery(helpCenterQueries.categories())
 
   const form = useForm({
     resolver: standardSchemaResolver(updateArticleSchema),
     defaultValues: {
       id: articleId as string,
       title: '',
+      description: '',
       content: '',
     },
   })
@@ -66,6 +74,7 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
   useEffect(() => {
     if (article && !hasInitialized) {
       form.setValue('title', article.title)
+      form.setValue('description', article.description ?? '')
       form.setValue('content', article.content)
       setContentJson(getInitialContentJson(article))
       setCategoryId(article.categoryId)
@@ -106,6 +115,7 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
     updateArticleMutation.mutate({
       id: articleId,
       title: data.title,
+      description: data.description?.trim() || undefined,
       content: data.content,
       contentJson: contentJson as TiptapContent | null,
       categoryId,
@@ -113,9 +123,6 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
   })
 
   const handleBack = useCallback(() => {
-    // Return to the category the article lives in so the user lands where
-    // they came from. If we don't have the article yet (still loading),
-    // fall back to the help center root.
     if (article?.categoryId) {
       void navigate({
         to: '/admin/help-center',
@@ -136,95 +143,181 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
     )
   }
 
+  const currentCategory = categories.find((c) => c.id === categoryId)
+  const publishDisabled = publishArticleMutation.isPending || unpublishArticleMutation.isPending
+
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="flex flex-col h-full">
-        {/* Top bar: back button + title crumbs + save controls.
-            Border spans the full width; inner content is constrained to
-            max-w-4xl so it aligns with the editor body below. */}
+        {/* Slim top bar: breadcrumbs + category + publish state + save */}
         <div className="border-b border-border/50 shrink-0">
-          <div className="mx-auto w-full max-w-4xl px-4 py-3 flex items-center gap-3">
-            <Button type="button" variant="ghost" size="sm" onClick={handleBack}>
-              <ArrowLeftIcon className="h-4 w-4 mr-1" />
-              Back
+          <div className="mx-auto w-full max-w-4xl px-4 py-2.5 flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="h-8 px-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
-              <Link
-                to="/admin/help-center"
-                className="hover:text-foreground transition-colors truncate"
-              >
-                Help Center
-              </Link>
-              <span className="shrink-0">/</span>
+
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
               {article.category && (
-                <>
-                  <Link
-                    to="/admin/help-center"
-                    search={{ category: article.categoryId }}
-                    className="hover:text-foreground transition-colors truncate"
-                  >
-                    {article.category.name}
-                  </Link>
-                  <span className="shrink-0">/</span>
-                </>
+                <Link
+                  to="/admin/help-center"
+                  search={{ category: article.categoryId }}
+                  className="hover:text-foreground transition-colors truncate"
+                >
+                  {article.category.name}
+                </Link>
               )}
-              <span className="text-foreground truncate">{article.title || 'Untitled'}</span>
             </div>
-            <div className="ml-auto flex items-center gap-2 shrink-0">
-              <Sheet open={mobileSettingsOpen} onOpenChange={setMobileSettingsOpen}>
-                <SheetTrigger asChild>
-                  <Button type="button" variant="outline" size="sm" className="lg:hidden">
-                    <Cog6ToothIcon className="h-4 w-4 mr-1.5" />
-                    Settings
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="h-[70vh]">
-                  <SheetHeader>
-                    <SheetTitle>Article Settings</SheetTitle>
-                  </SheetHeader>
-                  <div className="py-4 overflow-y-auto">
-                    <HelpCenterMetadataSidebarContent
-                      categoryId={categoryId}
-                      onCategoryChange={handleCategoryChange}
-                      isPublished={isPublished}
-                      onPublishToggle={handlePublishToggle}
-                      authorName={article.author?.name}
-                    />
-                  </div>
-                </SheetContent>
-              </Sheet>
-              <Button type="submit" size="sm" disabled={updateArticleMutation.isPending}>
-                {updateArticleMutation.isPending ? 'Saving\u2026' : 'Save changes'}
+
+            <div className="ml-auto flex items-center gap-1.5 shrink-0">
+              {/* Category pill */}
+              <Select value={categoryId || undefined} onValueChange={handleCategoryChange}>
+                <SelectTrigger
+                  size="sm"
+                  className="h-8 rounded-full text-xs px-3 min-w-0 max-w-[180px]"
+                >
+                  <SelectValue placeholder="Add to category...">
+                    <span className="flex items-center gap-1.5 truncate">
+                      {currentCategory?.icon && <span>{currentCategory.icon}</span>}
+                      <span className="truncate">{currentCategory?.name ?? 'Category'}</span>
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <span className="flex items-center gap-1.5">
+                        {cat.icon && <span>{cat.icon}</span>}
+                        <span className="truncate">{cat.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Publish state toggle */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePublishToggle}
+                disabled={publishDisabled}
+                className={cn(
+                  'h-8 rounded-full text-xs px-3 gap-1.5',
+                  isPublished &&
+                    'border-green-600/30 bg-green-600/10 text-green-700 hover:bg-green-600/20 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300'
+                )}
+              >
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    isPublished ? 'bg-green-500' : 'bg-muted-foreground/60'
+                  )}
+                />
+                {isPublished ? 'Published' : 'Draft'}
+              </Button>
+
+              {/* Save primary action */}
+              <Button
+                type="submit"
+                size="sm"
+                disabled={updateArticleMutation.isPending}
+                className="h-8 rounded-full text-xs px-3"
+              >
+                {updateArticleMutation.isPending ? 'Saving…' : 'Save changes'}
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Content + metadata sidebar */}
-        <div className="flex flex-1 min-h-0">
-          <ScrollArea className="flex-1">
-            {/* Constrain the editing surface to a reader-friendly width so the
-                admin view mirrors the way articles actually render on the portal. */}
-            <div className="mx-auto w-full max-w-4xl">
-              <HelpCenterFormFields
-                form={form}
-                contentJson={contentJson}
-                onContentChange={handleContentChange}
-                error={
-                  updateArticleMutation.isError ? updateArticleMutation.error.message : undefined
-                }
+        {/* Editor body — constrained to reader width */}
+        <ScrollArea className="flex-1">
+          <div className="mx-auto w-full max-w-4xl px-6 sm:px-10 py-12">
+            {updateArticleMutation.isError && (
+              <FormError message={updateArticleMutation.error.message} className="mb-4" />
+            )}
+
+            {/* Big title */}
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <input
+                      type="text"
+                      placeholder="Untitled"
+                      autoFocus
+                      className="w-full bg-transparent border-0 outline-none text-3xl sm:text-4xl font-bold tracking-tight text-foreground placeholder:text-muted-foreground/40 focus:ring-0 p-0"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Description / subtitle */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem className="mt-2">
+                  <FormControl>
+                    <input
+                      type="text"
+                      placeholder="Page description (optional)"
+                      className="w-full bg-transparent border-0 outline-none text-base sm:text-lg text-muted-foreground placeholder:text-muted-foreground/40 focus:ring-0 p-0"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Body */}
+            <div className="mt-8">
+              <FormField
+                control={form.control}
+                name="content"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      <RichTextEditor
+                        value={contentJson || ''}
+                        onChange={handleContentChange}
+                        placeholder="Start writing..."
+                        minHeight="60vh"
+                        borderless
+                        features={{
+                          headings: true,
+                          images: true,
+                          codeBlocks: true,
+                          taskLists: true,
+                          blockquotes: true,
+                          tables: true,
+                          dividers: true,
+                          bubbleMenu: true,
+                          slashMenu: true,
+                          embeds: true,
+                        }}
+                        onImageUpload={uploadImage}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          </ScrollArea>
-
-          <HelpCenterMetadataSidebar
-            categoryId={categoryId}
-            onCategoryChange={handleCategoryChange}
-            isPublished={isPublished}
-            onPublishToggle={handlePublishToggle}
-            authorName={article.author?.name}
-          />
-        </div>
+          </div>
+        </ScrollArea>
       </form>
     </Form>
   )
