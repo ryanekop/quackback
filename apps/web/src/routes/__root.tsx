@@ -176,13 +176,12 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   const themeMode = settings?.brandingConfig?.themeMode ?? 'user'
   const forcedTheme = isPortalRoute && themeMode !== 'user' ? themeMode : undefined
 
-  // Resolve the SSR theme class so the first painted frame is correct.
-  // forcedTheme wins, then the user's cookie preference, falling back to 'system'
-  // which next-themes' inline script resolves via matchMedia before first paint.
+  // next-themes' inline script sets the class on <html> before first paint.
+  // We pass the resolved default so the script knows what to apply.
   const defaultTheme = forcedTheme ?? themeCookie ?? 'system'
 
   return (
-    <html className={defaultTheme} suppressHydrationWarning>
+    <html suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
