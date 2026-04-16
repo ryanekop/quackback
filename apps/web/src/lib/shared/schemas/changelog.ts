@@ -78,6 +78,10 @@ export type PublishState = z.infer<typeof publishStateSchema>
 
 /**
  * Convert a server-side status + publishedAt into a PublishState discriminated union.
+ * The publishedAt value is carried through for published entries so that later
+ * updates don't silently reset the publish date to `now()` — the update path in
+ * changelog.service.ts does `state.publishAt ?? new Date()` and would otherwise
+ * clobber the original timestamp every time anything on the entry was edited.
  */
 export function toPublishState(
   status: 'draft' | 'scheduled' | 'published',
@@ -89,7 +93,10 @@ export function toPublishState(
     case 'scheduled':
       return { type: 'scheduled', publishAt: publishedAt ? new Date(publishedAt) : new Date() }
     case 'published':
-      return { type: 'published' }
+      return {
+        type: 'published',
+        publishAt: publishedAt ? new Date(publishedAt) : undefined,
+      }
   }
 }
 
@@ -97,8 +104,10 @@ export function toPublishState(
  * Derive a PublishState from an optional publishedAt ISO datetime string.
  *
  * - No value / undefined -> draft
- * - Future date -> scheduled
- * - Past or current date -> published
+ * - Future date -> scheduled (carries the target date)
+ * - Past or current date -> published (carries the date so backdating works;
+ *   without this, the service layer falls back to `new Date()` and the entry
+ *   gets stamped with the current moment instead of the requested past date)
  */
 export function publishedAtToPublishState(publishedAt?: string): PublishState {
   if (!publishedAt) {
@@ -108,5 +117,5 @@ export function publishedAtToPublishState(publishedAt?: string): PublishState {
   if (publishDate > new Date()) {
     return { type: 'scheduled', publishAt: publishDate }
   }
-  return { type: 'published' }
+  return { type: 'published', publishAt: publishDate }
 }

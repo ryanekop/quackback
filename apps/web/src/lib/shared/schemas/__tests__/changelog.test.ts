@@ -14,22 +14,28 @@ describe('publishedAtToPublishState', () => {
     expect(publishedAtToPublishState('')).toEqual({ type: 'draft' })
   })
 
-  it('should return published when publishedAt is in the past', () => {
+  it('should return published with the past date preserved (backdating)', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2025-06-15T12:00:00Z'))
 
     const result = publishedAtToPublishState('2025-06-01T00:00:00Z')
-    expect(result).toEqual({ type: 'published' })
+    expect(result).toEqual({
+      type: 'published',
+      publishAt: new Date('2025-06-01T00:00:00Z'),
+    })
   })
 
-  it('should return published when publishedAt equals current time', () => {
+  it('should return published with publishAt when publishedAt equals current time', () => {
     vi.useFakeTimers()
     const now = new Date('2025-06-15T12:00:00Z')
     vi.setSystemTime(now)
 
     // At the exact same millisecond, publishDate > new Date() is false, so it's published
     const result = publishedAtToPublishState('2025-06-15T12:00:00Z')
-    expect(result).toEqual({ type: 'published' })
+    expect(result).toEqual({
+      type: 'published',
+      publishAt: new Date('2025-06-15T12:00:00Z'),
+    })
   })
 
   it('should return scheduled with publishAt date when publishedAt is in the future', () => {
@@ -49,8 +55,18 @@ describe('toPublishState', () => {
     expect(toPublishState('draft', null)).toEqual({ type: 'draft' })
   })
 
-  it('should return published for published status', () => {
-    expect(toPublishState('published', '2025-01-01T00:00:00Z')).toEqual({ type: 'published' })
+  it('should return published with publishAt preserved for published status', () => {
+    expect(toPublishState('published', '2025-01-01T00:00:00Z')).toEqual({
+      type: 'published',
+      publishAt: new Date('2025-01-01T00:00:00Z'),
+    })
+  })
+
+  it('should return published with undefined publishAt when date is null', () => {
+    expect(toPublishState('published', null)).toEqual({
+      type: 'published',
+      publishAt: undefined,
+    })
   })
 
   it('should return scheduled with date for scheduled status', () => {
