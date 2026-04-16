@@ -5,7 +5,7 @@ import type { TiptapContent as DbTiptapContent } from '@/lib/shared/db-types'
 /**
  * TipTap mark schema - validates mark types and their attributes
  */
-const tiptapAttrValue = z.union([z.string(), z.number(), z.boolean()])
+const tiptapAttrValue = z.union([z.string(), z.number(), z.boolean(), z.null()])
 
 const tiptapMarkSchema = z.object({
   type: z.enum(['bold', 'italic', 'underline', 'strike', 'code', 'link']),
