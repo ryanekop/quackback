@@ -1,6 +1,6 @@
 import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router'
 import { DocumentTextIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
-import { ArrowLeft, FileText, Folder } from 'lucide-react'
+import { ArrowLeft, FileText } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { HelpCenterBreadcrumbs } from '@/components/help-center/help-center-breadcrumbs'
 import {
@@ -162,7 +162,10 @@ function CategoryIndexPage() {
                               : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                           )}
                         >
-                          <Folder className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                          <CategoryIcon
+                            icon={cat.icon}
+                            className="h-3.5 w-3.5 shrink-0 opacity-60"
+                          />
                           <span className="min-w-0 truncate">{cat.name}</span>
                         </Link>
                         {isActive && articles.length > 0 && (
