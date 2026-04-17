@@ -589,7 +589,8 @@ export function WidgetIdentify() {
   return null;
 }
 
-// Alternatively, bundle identity directly into init (skip this component):
+// Alternatively, bundle identity directly into init (skip this component).
+// Omit the identity field for anonymous visitors — it's the default.
 //
 //   Quackback("init", {
 //     identity: { ssoToken }, // or { id, email, name }
