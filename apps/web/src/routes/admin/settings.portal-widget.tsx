@@ -483,19 +483,18 @@ class WidgetController extends Controller
 const CLIENT_CODE_SIMPLE = `import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
+// The widget loads anonymously after Quackback("init"). Call identify
+// once you know who the user is — no need to call it for anonymous.
 export function WidgetIdentify() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      Quackback("identify", {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      });
-    } else {
-      Quackback("identify");
-    }
+    if (!user) return;
+    Quackback("identify", {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    });
   }, [user]);
 
   return null;
@@ -508,20 +507,17 @@ export function WidgetIdentify() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetch("/api/widget-hash", { method: "POST" })
-        .then((res) => res.json())
-        .then(({ hash }) => {
-          Quackback("identify", {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            hash,
-          });
+    if (!user) return;
+    fetch("/api/widget-hash", { method: "POST" })
+      .then((res) => res.json())
+      .then(({ hash }) => {
+        Quackback("identify", {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          hash,
         });
-    } else {
-      Quackback("identify");
-    }
+      });
   }, [user]);
 
   return null;

@@ -49,7 +49,6 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
   var panel = null;
   var isOpen = false;
   var isReady = false;
-  var isIdentified = false;
   var pendingIdentify = null;
   var metadata = null;
   var iconChat = null;
@@ -309,7 +308,7 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
     isOpen = false;
     isMobile = window.innerWidth < 640;
 
-    if (trigger && isIdentified && !(config && config.trigger === false)) {
+    if (trigger && !(config && config.trigger === false)) {
       trigger.setAttribute("aria-expanded", "false");
       trigger.style.display = "flex";
       if (!isMobile) {
@@ -404,34 +403,29 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
       case "init":
         config = options || {};
         isMobile = window.innerWidth < 640;
-        // If identity is bundled in init, dispatch identify now (syntactic sugar
-        // for init + identify as two separate calls).
-        if (config.identity !== undefined && config.identity !== null) {
-          dispatch("identify", config.identity);
+        // Widget is visible after init — create trigger and eagerly load iframe
+        if (!(config.trigger === false)) {
+          if (!trigger) createTrigger();
         }
+        if (!panel) createPanel();
+        // Start identity from bundled value, or fall back to anonymous
+        var initPayload = (config.identity !== undefined && config.identity !== null)
+          ? config.identity
+          : { anonymous: true };
+        if (isReady) sendToWidget("quackback:identify", initPayload);
+        else pendingIdentify = initPayload;
         break;
 
       case "identify":
-        // No-args / empty object → anonymous; otherwise { id, email, ... } or { ssoToken }
+        // Update identity — trigger already visible from init
         var identifyPayload = options || { anonymous: true };
-        if (!isIdentified) {
-          isIdentified = true;
-          if (!(config && config.trigger === false)) {
-            if (!trigger) createTrigger();
-            else trigger.style.display = "flex";
-          }
-        }
-        // Eagerly create the iframe so identify completes in the background
-        // before the user opens the panel.
-        if (!panel) createPanel();
         if (isReady) sendToWidget("quackback:identify", identifyPayload);
         else pendingIdentify = identifyPayload;
         break;
 
       case "logout":
-        isIdentified = false;
+        // Clear identity — widget stays visible, panel closes if open
         hidePanel();
-        if (trigger) trigger.style.display = "none";
         if (isReady) sendToWidget("quackback:identify", null);
         else pendingIdentify = null;
         break;
@@ -497,7 +491,6 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
         listeners = {};
         isOpen = false;
         isReady = false;
-        isIdentified = false;
         pendingOpen = null;
         break;
     }

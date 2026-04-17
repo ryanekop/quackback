@@ -568,35 +568,31 @@ class WidgetController extends Controller
 const CLIENT_CODE = `import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
+// The widget loads anonymously after Quackback("init"). Call identify
+// once you know who the user is — no need to call it for anonymous.
 export function WidgetIdentify() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetch("/api/widget-sso", { method: "POST" })
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch widget token");
-          return res.json();
-        })
-        .then(({ ssoToken }) => {
-          Quackback("identify", { ssoToken });
-        })
-        .catch(() => {
-          Quackback("logout");
-        });
-    } else {
-      Quackback("identify");
-    }
+    if (!user) return;
+
+    fetch("/api/widget-sso", { method: "POST" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch widget token");
+        return res.json();
+      })
+      .then(({ ssoToken }) => {
+        Quackback("identify", { ssoToken });
+      });
   }, [user]);
 
   return null;
 }
 
-// Tip: if you already know the user at page load, you can bundle
-// identity directly into init and skip the separate call:
+// Alternatively, bundle identity directly into init (skip this component):
 //
 //   Quackback("init", {
-//     identity: { ssoToken }, // or { id, email, name } or { anonymous: true }
+//     identity: { ssoToken }, // or { id, email, name }
 //   });`
 
 interface CodeTab {

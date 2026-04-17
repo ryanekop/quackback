@@ -56,11 +56,24 @@ describe('buildWidgetSDK', () => {
     expect(result).toContain('{ anonymous: true }')
   })
 
-  it('bundles identify inside init when config.identity is provided', () => {
+  it('bundles identity inside init when config.identity is provided', () => {
     const result = buildWidgetSDK('https://feedback.acme.com')
-    // init should dispatch an identify call when config.identity is not nullish
     expect(result).toContain('config.identity !== undefined')
-    expect(result).toContain('dispatch("identify", config.identity)')
+  })
+
+  it('init shows the widget and defaults to anonymous identity', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    // init creates the trigger and starts anonymous unless identity is bundled
+    expect(result).toMatch(/case "init"[\s\S]*createTrigger\(\)/)
+    expect(result).toMatch(/case "init"[\s\S]*anonymous: true/)
+  })
+
+  it('logout keeps the trigger visible (widget stays alive)', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    // The logout case should not hide the trigger
+    const logoutBlock = result.match(/case "logout":[\s\S]*?break;/)
+    expect(logoutBlock).not.toBeNull()
+    expect(logoutBlock![0]).not.toContain('trigger.style.display = "none"')
   })
 
   it('should replay the command queue on initialization', () => {
