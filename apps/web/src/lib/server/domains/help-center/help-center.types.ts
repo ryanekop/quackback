@@ -37,6 +37,10 @@ export interface HelpCenterCategoryWithCount extends HelpCenterCategory {
   articleCount: number
   /** Published articles in this category (excludes drafts and scheduled). */
   publishedArticleCount: number
+  /** articleCount plus the same for every descendant in the tree. */
+  recursiveArticleCount: number
+  /** publishedArticleCount plus the same for every descendant in the tree. */
+  recursivePublishedArticleCount: number
 }
 
 // ============================================================================

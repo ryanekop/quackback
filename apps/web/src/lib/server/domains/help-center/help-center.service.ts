@@ -43,6 +43,7 @@ import { generateArticleEmbedding } from './help-center-embedding.service'
 import {
   MAX_CATEGORY_DEPTH,
   collectDescendantIdsIncludingSelf,
+  computeRecursiveCounts,
   getCategoryDepth,
   getSubtreeMaxDepth,
 } from './category-tree'
@@ -177,12 +178,18 @@ export async function listCategories(
     counts.map((c) => [c.categoryId, { total: c.totalCount, published: c.publishedCount }])
   )
 
+  const flat = categories.map((c) => ({ id: c.id, parentId: c.parentId ?? null }))
+  const recursiveTotal = computeRecursiveCounts(flat, (id) => countMap.get(id)?.total ?? 0)
+  const recursivePublished = computeRecursiveCounts(flat, (id) => countMap.get(id)?.published ?? 0)
+
   return categories.map((cat) => {
     const row = countMap.get(cat.id as HelpCenterCategoryId)
     return {
       ...cat,
       articleCount: row?.total ?? 0,
       publishedArticleCount: row?.published ?? 0,
+      recursiveArticleCount: recursiveTotal.get(cat.id) ?? 0,
+      recursivePublishedArticleCount: recursivePublished.get(cat.id) ?? 0,
     }
   })
 }

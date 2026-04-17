@@ -248,6 +248,56 @@ describe('listCategories', () => {
     const result = await listCategories()
     expect(result[0].articleCount).toBe(0)
   })
+
+  it('rolls descendant counts up into parent recursiveArticleCount', async () => {
+    mockCategoryFindMany.mockResolvedValue([
+      {
+        id: 'category_parent' as HelpCenterCategoryId,
+        parentId: null,
+        slug: 'marketplaces',
+        name: 'Marketplaces',
+        description: null,
+        isPublic: true,
+        position: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'category_child' as HelpCenterCategoryId,
+        parentId: 'category_parent' as HelpCenterCategoryId,
+        slug: 'amazon',
+        name: 'Amazon',
+        description: null,
+        isPublic: true,
+        position: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ])
+
+    // Parent has zero direct articles; child has 3 published + 1 draft.
+    mockSelectFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        groupBy: vi
+          .fn()
+          .mockResolvedValue([{ categoryId: 'category_child', totalCount: 4, publishedCount: 3 }]),
+      }),
+    })
+
+    const result = await listCategories()
+    const parent = result.find((c) => c.id === 'category_parent')!
+    const child = result.find((c) => c.id === 'category_child')!
+
+    expect(parent.articleCount).toBe(0)
+    expect(parent.publishedArticleCount).toBe(0)
+    expect(parent.recursiveArticleCount).toBe(4)
+    expect(parent.recursivePublishedArticleCount).toBe(3)
+
+    expect(child.articleCount).toBe(4)
+    expect(child.recursiveArticleCount).toBe(4)
+    expect(child.publishedArticleCount).toBe(3)
+    expect(child.recursivePublishedArticleCount).toBe(3)
+  })
 })
 
 describe('listPublicCategories', () => {
