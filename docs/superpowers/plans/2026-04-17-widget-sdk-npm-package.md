@@ -24,7 +24,7 @@
 
 Consequence for API design: if you already know the value at startup, bundle it in `init`. If it changes, call a method. If you need to _read_ current state synchronously (for UI coordination with the host app), use a getter.
 
-**Cross-platform consistency where it matters, platform idioms where they don't.** Field names (`appUrl`, `placement`, `identity`) are unified across web, iOS, and Android — no vocabulary drift. Setup verb (`init` vs `configure`) follows each platform's ecosystem convention. Config shape (flat options vs typed struct) does the same.
+**Cross-platform consistency where it matters, platform idioms where they don't.** Field names (`instanceUrl`, `placement`, `identity`) are unified across web, iOS, and Android — no vocabulary drift. Setup verb (`init` vs `configure`) follows each platform's ecosystem convention. Config shape (flat options vs typed struct) does the same.
 
 ## Scope
 
@@ -108,7 +108,7 @@ Goal: before extracting the web SDK to npm, make sure all three surfaces (web, i
 
 **Scope of changes:**
 
-1. **Rename on iOS + Android:** `baseURL` → `appUrl`; `position` → `placement`
+1. **Rename on iOS + Android:** `baseURL` → `instanceUrl`; `position` → `placement`
 2. **Remove on iOS + Android:** `appId` from `QuackbackConfig` (vestigial — URL is the identifier)
 3. **Add on iOS + Android:** `Quackback.metadata(_:)` method (web already has it)
 4. **Add on iOS + Android:** `view` and `title` parameters to `Quackback.open(...)` (web already has them)
@@ -134,26 +134,26 @@ These changes ship via ~/quackback, ~/quackback-ios, ~/quackback-android, ~/quac
 Run: `grep -rn "appId" ~/quackback-ios/Sources/`
 Expected: find every place `appId` is read. If it's only stored in config and never sent to the widget/iframe, it's vestigial — remove it. If it's part of the iframe URL or a postMessage payload, keep it and document why.
 
-- [ ] **Step 2: Rename `baseURL` → `appUrl` and `position` → `placement` in `QuackbackConfig.swift`**
+- [ ] **Step 2: Rename `baseURL` → `instanceUrl` and `position` → `placement` in `QuackbackConfig.swift`**
 
-Rewrite the struct initializer so `appUrl: URL` and `placement: QuackbackPosition` are the canonical names. Drop `appId` if Step 1 confirmed it's vestigial. Keep `theme`, `buttonColor`, `locale` unchanged.
+Rewrite the struct initializer so `instanceUrl: URL` and `placement: QuackbackPosition` are the canonical names. Drop `appId` if Step 1 confirmed it's vestigial. Keep `theme`, `buttonColor`, `locale` unchanged.
 
 ```swift
 public struct QuackbackConfig {
-    public let appUrl: URL
+    public let instanceUrl: URL
     public var theme: QuackbackTheme
     public var placement: QuackbackPosition
     public var buttonColor: String?
     public var locale: String?
 
     public init(
-        appUrl: URL,
+        instanceUrl: URL,
         theme: QuackbackTheme = .system,
         placement: QuackbackPosition = .bottomRight,
         buttonColor: String? = nil,
         locale: String? = nil
     ) {
-        self.appUrl = appUrl
+        self.instanceUrl = instanceUrl
         self.theme = theme
         self.placement = placement
         self.buttonColor = buttonColor
@@ -164,7 +164,7 @@ public struct QuackbackConfig {
 
 - [ ] **Step 3: Update `Quackback.swift` call sites**
 
-Every reference to `config.baseURL` becomes `config.appUrl`. Every `config.position` becomes `config.placement`. Update `fetchTheme(baseURL:)` parameter name too.
+Every reference to `config.baseURL` becomes `config.instanceUrl`. Every `config.position` becomes `config.placement`. Update `fetchTheme(baseURL:)` parameter name too.
 
 - [ ] **Step 4: Add `Quackback.metadata(_:)` method**
 
@@ -212,11 +212,11 @@ Update `JSBridge.openCommand` to accept the new params and emit a JSON payload.
 
 - [ ] **Step 6: Update tests**
 
-Adjust `QuackbackConfigTests.swift` to use `appUrl` / `placement`. Add a `JSBridgeTests` case for `metadataCommand` and extended `openCommand` with view/title.
+Adjust `QuackbackConfigTests.swift` to use `instanceUrl` / `placement`. Add a `JSBridgeTests` case for `metadataCommand` and extended `openCommand` with view/title.
 
 - [ ] **Step 7: Update example app and README**
 
-`Example/QuackbackExample/QuackbackExampleApp.swift`: rename `baseURL:` → `appUrl:`. README: update the API table and quickstart.
+`Example/QuackbackExample/QuackbackExampleApp.swift`: rename `baseURL:` → `instanceUrl:`. README: update the API table and quickstart.
 
 - [ ] **Step 8: Verify**
 
@@ -227,9 +227,9 @@ Open `Package.swift` in Xcode (or run `swift build --package-path ~/quackback-io
 ```bash
 cd ~/quackback-ios
 git add -A
-git commit -m "feat: unify surface — rename baseURL→appUrl, position→placement; add metadata and open options
+git commit -m "feat: unify surface — rename baseURL→instanceUrl, position→placement; add metadata and open options
 
-- QuackbackConfig: baseURL → appUrl, position → placement, drop vestigial appId
+- QuackbackConfig: baseURL → instanceUrl, position → placement, drop vestigial appId
 - New Quackback.metadata(_:) method for parity with web
 - Quackback.open(view:title:board:) for parity with web
 - Pre-production breaking change, no deprecation shims"
@@ -261,7 +261,7 @@ If vestigial, remove.
 
 ```kotlin
 data class QuackbackConfig(
-    val appUrl: String,
+    val instanceUrl: String,
     val theme: QuackbackTheme = QuackbackTheme.SYSTEM,
     val placement: QuackbackPosition = QuackbackPosition.BOTTOM_RIGHT,
     val buttonColor: String? = null,
@@ -269,7 +269,7 @@ data class QuackbackConfig(
 )
 ```
 
-- [ ] **Step 3: Update `Quackback.kt` call sites** — `config.baseURL` → `config.appUrl`, `config.position` → `config.placement`.
+- [ ] **Step 3: Update `Quackback.kt` call sites** — `config.baseURL` → `config.instanceUrl`, `config.position` → `config.placement`.
 
 - [ ] **Step 4: Add metadata method**
 
@@ -311,7 +311,7 @@ fun open(view: OpenView? = null, title: String? = null, board: String? = null) {
 ```bash
 cd ~/quackback-android
 git add -A
-git commit -m "feat: unify surface — rename baseURL→appUrl, position→placement; add metadata and open options
+git commit -m "feat: unify surface — rename baseURL→instanceUrl, position→placement; add metadata and open options
 
 Matches the iOS and web surface. Pre-production breaking change."
 git push origin master:main
@@ -388,7 +388,7 @@ git push origin main
 
 - [ ] **Step 1: Update `mobile-sdks.mdx`**
 
-Replace every `baseURL` with `appUrl`, every `position` with `placement`. Drop the `appId` parameter from all `QuackbackConfig` examples. Add sections for `metadata(...)` and the extended `open(...)` signature. Keep the design-principle line visible: _"Everything about startup state goes in `configure`; changes at runtime are method calls."_
+Replace every `baseURL` with `instanceUrl`, every `position` with `placement`. Drop the `appId` parameter from all `QuackbackConfig` examples. Add sections for `metadata(...)` and the extended `open(...)` signature. Keep the design-principle line visible: _"Everything about startup state goes in `configure`; changes at runtime are method calls."_
 
 - [ ] **Step 2: Update `installation.mdx`**
 
@@ -406,7 +406,7 @@ Note under `init` options: _"Set `launcher: false` to start with the button hidd
 ```bash
 cd ~/quackback-docs
 git add widget/
-git commit -m "docs(widget): unified surface — appUrl, placement, metadata, showLauncher/hideLauncher"
+git commit -m "docs(widget): unified surface — instanceUrl, placement, metadata, showLauncher/hideLauncher"
 git push origin main
 ```
 
@@ -558,7 +558,7 @@ export type AppUrl = string
 /** Passed to `Quackback("init", ...)` or `Quackback.init(...)`. */
 export interface InitOptions {
   /** Tenant Quackback URL — required when using the npm package. */
-  appUrl: AppUrl
+  instanceUrl: AppUrl
   placement?: 'left' | 'right'
   defaultBoard?: string
   /** Set `launcher: false` to hide the default floating button and open programmatically. */
@@ -1529,9 +1529,9 @@ export interface ServerConfig {
   hmacRequired?: boolean
 }
 
-export async function fetchServerConfig(appUrl: string): Promise<ServerConfig> {
+export async function fetchServerConfig(instanceUrl: string): Promise<ServerConfig> {
   try {
-    const res = await fetch(`${appUrl}/api/widget/config.json`)
+    const res = await fetch(`${instanceUrl}/api/widget/config.json`)
     if (!res.ok) return {}
     return (await res.json()) as ServerConfig
   } catch {
@@ -1585,7 +1585,7 @@ describe('sdk', () => {
 
   it('init creates a launcher and iframe', async () => {
     const sdk = createSDK()
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com' })
     await Promise.resolve()
     expect(document.querySelector('button[aria-label="Open feedback widget"]')).not.toBeNull()
     expect(document.querySelector('iframe[title="Feedback Widget"]')).not.toBeNull()
@@ -1593,7 +1593,7 @@ describe('sdk', () => {
 
   it('init with { launcher: false } does not create a button', async () => {
     const sdk = createSDK()
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com', launcher: false })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com', launcher: false })
     await Promise.resolve()
     expect(document.querySelector('button[aria-label="Open feedback widget"]')).toBeNull()
   })
@@ -1604,7 +1604,7 @@ describe('sdk', () => {
     const origSpy = vi
       .spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get')
       .mockReturnValue({ postMessage } as unknown as Window)
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com' })
     // Simulate iframe ready:
     window.dispatchEvent(
       new MessageEvent('message', {
@@ -1625,7 +1625,7 @@ describe('sdk', () => {
     vi.spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get').mockReturnValue({
       postMessage,
     } as unknown as Window)
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com' })
     window.dispatchEvent(
       new MessageEvent('message', {
         origin: 'https://feedback.acme.com',
@@ -1644,7 +1644,7 @@ describe('sdk', () => {
     vi.spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get').mockReturnValue({
       postMessage: vi.fn(),
     } as unknown as Window)
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com' })
     window.dispatchEvent(
       new MessageEvent('message', {
         origin: 'https://feedback.acme.com',
@@ -1661,7 +1661,7 @@ describe('sdk', () => {
 
   it('isOpen tracks panel state', () => {
     const sdk = createSDK()
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com' })
     expect(sdk.isOpen()).toBe(false)
     sdk.dispatch('open')
     expect(sdk.isOpen()).toBe(true)
@@ -1671,7 +1671,7 @@ describe('sdk', () => {
 
   it('getUser / isIdentified reflect identify-result messages', () => {
     const sdk = createSDK()
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com' })
     expect(sdk.getUser()).toBeNull()
     expect(sdk.isIdentified()).toBe(false)
     window.dispatchEvent(
@@ -1693,7 +1693,7 @@ describe('sdk', () => {
 
   it('open emits an open event with view context', () => {
     const sdk = createSDK()
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com' })
     const seen: unknown[] = []
     sdk.dispatch('on', 'open', (payload: unknown) => seen.push(payload))
     sdk.dispatch('open', { view: 'new-post', title: 'Bug:' })
@@ -1707,7 +1707,7 @@ describe('sdk', () => {
     vi.spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get').mockReturnValue({
       postMessage,
     } as unknown as Window)
-    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    sdk.dispatch('init', { instanceUrl: 'https://feedback.acme.com' })
     window.dispatchEvent(
       new MessageEvent('message', {
         origin: 'https://feedback.acme.com',
@@ -1786,13 +1786,13 @@ export function createSDK(): SDK {
   const emitter: Emitter = createEmitter()
 
   function iframeOrigin(): string {
-    return new URL(config!.appUrl).origin
+    return new URL(config!.instanceUrl).origin
   }
 
   function ensurePanel(): PanelHandle {
     if (panel) return panel
     panel = createPanel({
-      widgetUrl: `${config!.appUrl}/widget`,
+      widgetUrl: `${config!.instanceUrl}/widget`,
       placement: config!.placement ?? 'right',
       defaultBoard: config!.defaultBoard,
       showCloseButton: config!.launcher === false,
@@ -1865,7 +1865,7 @@ export function createSDK(): SDK {
     switch (cmd) {
       case 'init': {
         config = { ...(a as InitOptions) }
-        if (!config.appUrl) throw new Error('Quackback: init requires { appUrl }')
+        if (!config.instanceUrl) throw new Error('Quackback: init requires { instanceUrl }')
         theme = withDefaults(config.theme)
         if (config.launcher !== false) {
           launcher = createLauncher({
@@ -1888,7 +1888,7 @@ export function createSDK(): SDK {
         sendIdentity(initialIdentity)
         // Fire-and-forget remote theme fetch; override only if caller didn't supply
         if (!config.theme) {
-          void fetchServerConfig(config.appUrl).then((serverCfg) => {
+          void fetchServerConfig(config.instanceUrl).then((serverCfg) => {
             if (serverCfg.theme) {
               theme = withDefaults(serverCfg.theme)
               launcher?.applyColors()
@@ -2128,14 +2128,14 @@ describe('public API', () => {
     expect(typeof Quackback.destroy).toBe('function')
   })
 
-  it('init requires appUrl', () => {
-    expect(() => Quackback.init({} as InitOptions)).toThrow(/appUrl/)
+  it('init requires instanceUrl', () => {
+    expect(() => Quackback.init({} as InitOptions)).toThrow(/instanceUrl/)
   })
 
   it('accepts legacy `{ anonymous: true }` without erroring', () => {
     // Not in the public Identity type, but runtime tolerates it for anyone
     // migrating from Intercom/Featurebase muscle memory.
-    Quackback.init({ appUrl: 'https://feedback.acme.com' })
+    Quackback.init({ instanceUrl: 'https://feedback.acme.com' })
     expect(() =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Quackback.identify({ anonymous: true } as any)
@@ -2196,7 +2196,7 @@ describe('browser-queue', () => {
       { q }
     )
     ;(globalThis as unknown as { Quackback: { q: IArguments[] } }).Quackback('init', {
-      appUrl: 'https://feedback.acme.com',
+      instanceUrl: 'https://feedback.acme.com',
     })
     // Pre-fill baked URL the server will inject:
     ;(globalThis as unknown as { __QUACKBACK_URL__?: string }).__QUACKBACK_URL__ =
@@ -2209,7 +2209,7 @@ describe('browser-queue', () => {
     }))
     await import('../src/browser-queue')
     expect(dispatched.length).toBeGreaterThan(0)
-    expect(dispatched[0]).toEqual(['init', { appUrl: 'https://feedback.acme.com' }, undefined])
+    expect(dispatched[0]).toEqual(['init', { instanceUrl: 'https://feedback.acme.com' }, undefined])
   })
 })
 ```
@@ -2244,7 +2244,7 @@ const queued = w.Quackback?.q ?? []
 // with sensible defaults. Host apps can still call Quackback("init", ...) to override.
 const bakedUrl = w.__QUACKBACK_URL__
 if (bakedUrl && !queued.some((args) => args[0] === 'init')) {
-  sdk.dispatch('init', { appUrl: bakedUrl } satisfies InitOptions)
+  sdk.dispatch('init', { instanceUrl: bakedUrl } satisfies InitOptions)
 }
 
 // Replace the queue with a live dispatcher
@@ -2463,7 +2463,7 @@ Open a browser tab to http://localhost:3000, DevTools console, run:
 const s = document.createElement('script')
 s.src = '/api/widget/sdk.js'
 document.head.appendChild(s)
-s.onload = () => Quackback('init', { appUrl: location.origin })
+s.onload = () => Quackback('init', { instanceUrl: location.origin })
 ```
 
 Expected: the widget button appears in the bottom-right, clicking it opens the panel.
@@ -2515,7 +2515,7 @@ describe('useQuackbackInit', () => {
   it('inits the widget on mount and destroys on unmount', () => {
     const destroy = vi.spyOn(Quackback, 'destroy')
     function C() {
-      useQuackbackInit({ appUrl: 'https://feedback.acme.com' })
+      useQuackbackInit({ instanceUrl: 'https://feedback.acme.com' })
       return null
     }
     const { unmount } = render(<C />)
@@ -2528,7 +2528,7 @@ describe('useQuackbackInit', () => {
     const identify = vi.spyOn(Quackback, 'identify')
     function C({ user }: { user: { id: string; email: string } | null }) {
       useQuackbackInit({
-        appUrl: 'https://feedback.acme.com',
+        instanceUrl: 'https://feedback.acme.com',
         identity: user ? { id: user.id, email: user.email } : undefined,
       })
       return null
@@ -2541,7 +2541,7 @@ describe('useQuackbackInit', () => {
 
   it('does not init when shouldInitialize is false', () => {
     function C() {
-      useQuackbackInit({ appUrl: 'https://feedback.acme.com', shouldInitialize: false })
+      useQuackbackInit({ instanceUrl: 'https://feedback.acme.com', shouldInitialize: false })
       return null
     }
     render(<C />)
@@ -2550,7 +2550,7 @@ describe('useQuackbackInit', () => {
 
   it('inits later when shouldInitialize flips to true', () => {
     function C({ enabled }: { enabled: boolean }) {
-      useQuackbackInit({ appUrl: 'https://feedback.acme.com', shouldInitialize: enabled })
+      useQuackbackInit({ instanceUrl: 'https://feedback.acme.com', shouldInitialize: enabled })
       return null
     }
     const { rerender } = render(<C enabled={false} />)
@@ -2562,7 +2562,7 @@ describe('useQuackbackInit', () => {
   it('respects initializeDelay', async () => {
     vi.useFakeTimers()
     function C() {
-      useQuackbackInit({ appUrl: 'https://feedback.acme.com', initializeDelay: 500 })
+      useQuackbackInit({ instanceUrl: 'https://feedback.acme.com', initializeDelay: 500 })
       return null
     }
     render(<C />)
@@ -2828,7 +2828,7 @@ Replace the script injection block with the React hook from the `/react` subpath
 import { useQuackbackInit } from '@quackback/widget/react'
 
 // inside RootDocument component (replace the old useEffect that loaded /sdk.js):
-useQuackbackInit({ appUrl: 'https://feedback.quackback.io' })
+useQuackbackInit({ instanceUrl: 'https://feedback.quackback.io' })
 ```
 
 Drop the manual `document.createElement("script")` block entirely — the npm package manages its own DOM.
@@ -2911,7 +2911,7 @@ Full quickstart covering:
 
 - **Positioning line:** _"A real npm package for the Quackback widget — types, tree-shaking, SSR-safe, no dynamic script injection."_ (This is what differentiates us from Canny and Featurebase, both script-tag-only.)
 - Install: `npm install @quackback/widget`
-- Minimal usage: `Quackback.init({ appUrl: '...' })`
+- Minimal usage: `Quackback.init({ instanceUrl: '...' })`
 - Identity variants (with details / ssoToken / anonymous by omitting the argument)
 - React hooks example: `useQuackbackInit`, `useQuackback`, `useQuackbackEvent` (no provider — show why)
 - Section **"Other frameworks"**: Vue/Svelte/Angular users can import from `@quackback/widget` directly (vanilla API works everywhere). Dedicated adapters will ship when there's demand.
@@ -2996,7 +2996,7 @@ git commit -m "chore(widget): prepare v0.1.0 publish"
 7. **Runtime `setLocale`** — Tier 2 imperative method deferred; add when a host app surfaces real demand.
 8. **Unread count** — tracked in the ideal-UX discussion as Tier 2; add when the server surfaces unread notifications through the widget.
 
-**Type consistency check:** `InitOptions`, `Identity`, `OpenOptions`, `WidgetUser`, `WidgetTheme`, `EventMap`, `EventName`, `EventHandler`, `Unsubscribe` names stay consistent from Task 2 through Task 18. The dispatcher's `Command` union in Task 9 (`init | identify | logout | open | close | showLauncher | hideLauncher | destroy | metadata | on | off`) matches the imperative methods exposed in Task 10. The state getters (`isOpen`, `getUser`, `isIdentified`) live on the `SDK` interface alongside `dispatch` and are re-exported on the public `Quackback` object. Mobile field names (`appUrl`, `placement`) from Phase 0 match web's `InitOptions` in Task 2. `ResolvedTheme` is internal to `theme.ts` only.
+**Type consistency check:** `InitOptions`, `Identity`, `OpenOptions`, `WidgetUser`, `WidgetTheme`, `EventMap`, `EventName`, `EventHandler`, `Unsubscribe` names stay consistent from Task 2 through Task 18. The dispatcher's `Command` union in Task 9 (`init | identify | logout | open | close | showLauncher | hideLauncher | destroy | metadata | on | off`) matches the imperative methods exposed in Task 10. The state getters (`isOpen`, `getUser`, `isIdentified`) live on the `SDK` interface alongside `dispatch` and are re-exported on the public `Quackback` object. Mobile field names (`instanceUrl`, `placement`) from Phase 0 match web's `InitOptions` in Task 2. `ResolvedTheme` is internal to `theme.ts` only.
 
 **Placeholder scan:** no "TBD", "similar to Task N", or unimplemented code paths. Task 14's second test (`rerender` + `identify` spy) is intentionally a behavioral smoke test — sharpen if the provider API exposes a spy-friendly hook during implementation. Task 0.1 Step 1 (audit `appId`) is a real audit that may or may not surface code to delete — if `appId` IS in use, plan only removes the config field after finding a replacement.
 
