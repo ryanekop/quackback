@@ -33,21 +33,38 @@ function parseCssVar(css: string, varName: string): string | undefined {
   return match ? match[1].trim() : undefined
 }
 
+/**
+ * Normalize a CSS color value to hex so every client (web, iOS, Android) can
+ * consume it the same way. Admin UIs can paste `oklch(...)`, rgb, or hex — we
+ * coerce to hex; anything we can't recognize is dropped (`undefined`) so the
+ * client uses its own default.
+ */
+async function toHex(value: string | undefined): Promise<string | undefined> {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) return trimmed
+  if (/^oklch\(/i.test(trimmed)) {
+    const { oklchToHex } = await import('@/lib/shared/theme/colors')
+    return oklchToHex(trimmed)
+  }
+  return undefined
+}
+
 /** Extract theme values from :root and .dark blocks in custom CSS */
-function extractThemeFromCss(css: string): ServerTheme {
+async function extractThemeFromCss(css: string): Promise<ServerTheme> {
   const theme: ServerTheme = {}
   const rootMatch = css.match(/:root\s*\{([^}]+)\}/)
   if (rootMatch) {
     const rootBlock = rootMatch[1]
-    theme.lightPrimary = parseCssVar(rootBlock, '--primary')
-    theme.lightPrimaryForeground = parseCssVar(rootBlock, '--primary-foreground')
+    theme.lightPrimary = await toHex(parseCssVar(rootBlock, '--primary'))
+    theme.lightPrimaryForeground = await toHex(parseCssVar(rootBlock, '--primary-foreground'))
     theme.radius = parseCssVar(rootBlock, '--radius')
   }
   const darkMatch = css.match(/\.dark\s*\{([^}]+)\}/)
   if (darkMatch) {
     const darkBlock = darkMatch[1]
-    theme.darkPrimary = parseCssVar(darkBlock, '--primary')
-    theme.darkPrimaryForeground = parseCssVar(darkBlock, '--primary-foreground')
+    theme.darkPrimary = await toHex(parseCssVar(darkBlock, '--primary'))
+    theme.darkPrimaryForeground = await toHex(parseCssVar(darkBlock, '--primary-foreground'))
   }
   return theme
 }
@@ -84,7 +101,7 @@ export const Route = createFileRoute('/api/widget/config.json')({
 
           const customCss = await getCustomCss()
           if (customCss) {
-            const overrides = extractThemeFromCss(customCss)
+            const overrides = await extractThemeFromCss(customCss)
             if (overrides.lightPrimary) theme.lightPrimary = overrides.lightPrimary
             if (overrides.lightPrimaryForeground)
               theme.lightPrimaryForeground = overrides.lightPrimaryForeground
