@@ -590,7 +590,14 @@ export function WidgetIdentify() {
   }, [user]);
 
   return null;
-}`
+}
+
+// Tip: if you already know the user at page load, you can bundle
+// identity directly into init and skip the separate call:
+//
+//   Quackback("init", {
+//     identity: { ssoToken }, // or { id, email, name } or { anonymous: true }
+//   });`
 
 interface CodeTab {
   id: string

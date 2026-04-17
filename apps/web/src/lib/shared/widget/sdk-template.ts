@@ -404,6 +404,11 @@ export function buildWidgetSDK(baseUrl: string, theme?: WidgetTheme): string {
       case "init":
         config = options || {};
         isMobile = window.innerWidth < 640;
+        // If identity is bundled in init, dispatch identify now (syntactic sugar
+        // for init + identify as two separate calls).
+        if (config.identity !== undefined && config.identity !== null) {
+          dispatch("identify", config.identity);
+        }
         break;
 
       case "identify":

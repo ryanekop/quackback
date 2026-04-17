@@ -56,6 +56,13 @@ describe('buildWidgetSDK', () => {
     expect(result).toContain('{ anonymous: true }')
   })
 
+  it('bundles identify inside init when config.identity is provided', () => {
+    const result = buildWidgetSDK('https://feedback.acme.com')
+    // init should dispatch an identify call when config.identity is not nullish
+    expect(result).toContain('config.identity !== undefined')
+    expect(result).toContain('dispatch("identify", config.identity)')
+  })
+
   it('should replay the command queue on initialization', () => {
     const result = buildWidgetSDK('https://feedback.acme.com')
     expect(result).toContain('window.Quackback')
