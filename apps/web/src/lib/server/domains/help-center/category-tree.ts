@@ -59,6 +59,37 @@ export function collectDescendantIdsIncludingSelf<T extends CategoryLike>(
 }
 
 /**
+ * Return a map of recursive counts: each category's own direct count plus the
+ * sum of every descendant's direct count. Categories not in the input contribute
+ * nothing. Every id in `flat` receives an entry (0 when nothing is below it).
+ *
+ * Runs in O(n * d) where d is the tree depth (capped by MAX_CATEGORY_DEPTH),
+ * so effectively linear for our use. Terminates on cycles by tracking the
+ * ancestor set per walk.
+ */
+export function computeRecursiveCounts<T extends CategoryLike>(
+  flat: T[],
+  directCount: (id: string) => number
+): Map<string, number> {
+  const byId = new Map(flat.map((c) => [c.id, c]))
+  const out = new Map<string, number>()
+  for (const cat of flat) out.set(cat.id, directCount(cat.id))
+
+  for (const cat of flat) {
+    const own = directCount(cat.id)
+    if (own === 0) continue
+    const seen = new Set<string>([cat.id])
+    let parentId = cat.parentId
+    while (parentId !== null && !seen.has(parentId)) {
+      seen.add(parentId)
+      out.set(parentId, (out.get(parentId) ?? 0) + own)
+      parentId = byId.get(parentId)?.parentId ?? null
+    }
+  }
+  return out
+}
+
+/**
  * Walk from the given category up to its top-level ancestor.
  * Depth is the number of ancestors above — 0 for top-level.
  *

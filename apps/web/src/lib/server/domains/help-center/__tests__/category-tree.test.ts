@@ -3,6 +3,7 @@ import {
   MAX_CATEGORY_DEPTH,
   collectDescendantIds,
   collectDescendantIdsIncludingSelf,
+  computeRecursiveCounts,
   getCategoryDepth,
   getSubtreeMaxDepth,
   buildAncestorChain,
@@ -90,6 +91,68 @@ describe('getSubtreeMaxDepth', () => {
   })
   it('returns 0 when the id does not exist', () => {
     expect(getSubtreeMaxDepth(flat, 'zzz')).toBe(0)
+  })
+})
+
+describe('computeRecursiveCounts', () => {
+  it('returns the direct count for a leaf category', () => {
+    const out = computeRecursiveCounts(flat, (id) => (id === 'd' ? 3 : 0))
+    expect(out.get('d')).toBe(3)
+  })
+
+  it('propagates a descendant count up to every ancestor', () => {
+    // Only d has articles; a and b should both report 3.
+    const out = computeRecursiveCounts(flat, (id) => (id === 'd' ? 3 : 0))
+    expect(out.get('b')).toBe(3)
+    expect(out.get('a')).toBe(3)
+    // c is a sibling of b with no articles anywhere beneath
+    expect(out.get('c')).toBe(0)
+    // e is an unrelated root
+    expect(out.get('e')).toBe(0)
+  })
+
+  it('sums counts from multiple descendants into a shared ancestor', () => {
+    // c has 2 direct; d (under b) has 5. Both roll up into a.
+    const direct = new Map([
+      ['c', 2],
+      ['d', 5],
+    ])
+    const out = computeRecursiveCounts(flat, (id) => direct.get(id) ?? 0)
+    expect(out.get('b')).toBe(5)
+    expect(out.get('c')).toBe(2)
+    expect(out.get('a')).toBe(7)
+  })
+
+  it('includes the direct count on the category itself', () => {
+    // b has 4 direct articles and d (its child) has 1.
+    const direct = new Map([
+      ['b', 4],
+      ['d', 1],
+    ])
+    const out = computeRecursiveCounts(flat, (id) => direct.get(id) ?? 0)
+    expect(out.get('b')).toBe(5)
+    expect(out.get('a')).toBe(5)
+  })
+
+  it('returns a map with an entry for every category, defaulting to 0', () => {
+    const out = computeRecursiveCounts(flat, () => 0)
+    expect(out.size).toBe(flat.length)
+    for (const cat of flat) {
+      expect(out.get(cat.id)).toBe(0)
+    }
+  })
+
+  it('terminates when the input contains a cycle', () => {
+    const cyclic: TestCat[] = [
+      { id: 'x', parentId: 'y' },
+      { id: 'y', parentId: 'x' },
+    ]
+    // Must not hang. Exact values in a cycle are unspecified, only termination
+    // and non-negativity are contracts we care about.
+    const out = computeRecursiveCounts(cyclic, () => 1)
+    expect(out.size).toBe(2)
+    expect(out.get('x')).toBeGreaterThanOrEqual(1)
+    expect(out.get('y')).toBeGreaterThanOrEqual(1)
   })
 })
 
