@@ -14,14 +14,15 @@
 
 **Declarative setup + imperative changes.** Everything about the widget's _starting state_ goes into `init` / `configure`. Anything that changes at runtime is a method call. This split dictates what lives where:
 
-| Concern                  | Declarative (init)       | Imperative (method)                 |
-| ------------------------ | ------------------------ | ----------------------------------- |
-| Where the widget appears | `placement`, `launcher`  | `showLauncher()` / `hideLauncher()` |
-| Who the user is          | `identity`               | `identify(...)` / `logout()`        |
-| Session context          | _(none — runtime only)_  | `metadata(...)`                     |
-| Panel visibility         | _(always starts hidden)_ | `open(...)` / `close()`             |
+| Concern                  | Declarative (init)       | Imperative (method)                                                            | Read (getter)                 |
+| ------------------------ | ------------------------ | ------------------------------------------------------------------------------ | ----------------------------- |
+| Where the widget appears | `placement`, `launcher`  | `showLauncher()` / `hideLauncher()`                                            | —                             |
+| Who the user is          | `identity`               | `identify(...)` / `logout()`                                                   | `getUser()`, `isIdentified()` |
+| Session context          | _(runtime only)_         | `metadata(...)`                                                                | —                             |
+| Panel visibility         | _(always starts hidden)_ | `open(...)` / `close()`                                                        | `isOpen()`                    |
+| Content targeting        | `defaultBoard`           | `open({ postId / articleId / view / query / body / title / board / entryId })` | —                             |
 
-Consequence for API design: if you already know the value at startup, you never need an extra method call — bundle it in `init`. If it changes, call the method.
+Consequence for API design: if you already know the value at startup, bundle it in `init`. If it changes, call a method. If you need to _read_ current state synchronously (for UI coordination with the host app), use a getter.
 
 **Cross-platform consistency where it matters, platform idioms where they don't.** Field names (`appUrl`, `placement`, `identity`) are unified across web, iOS, and Android — no vocabulary drift. Setup verb (`init` vs `configure`) follows each platform's ecosystem convention. Config shape (flat options vs typed struct) does the same.
 
@@ -583,10 +584,34 @@ export type Identity =
   | { ssoToken: string }
   | ({ id: string; email: string; name?: string; avatarURL?: string } & Record<string, unknown>)
 
-export interface OpenOptions {
-  view?: 'home' | 'new-post' | 'changelog'
-  title?: string
-  board?: string
+/**
+ * Arguments to `Quackback.open(...)`. Discriminated on the target:
+ * - omit the payload to open the home view
+ * - `{ view: 'new-post', title?, body?, board? }` pre-fills the new-post form
+ * - `{ view: 'changelog', entryId? }` opens the changelog, optionally to one entry
+ * - `{ view: 'help', query? }` opens help, optionally with search prefilled
+ * - `{ postId }` deep-links to a specific post
+ * - `{ articleId }` deep-links to a help article
+ *
+ * Fields `view` / `title` / `board` are handled by the iframe today.
+ * `body`, `query`, `postId`, `articleId`, `entryId` pass through the postMessage
+ * protocol; full iframe-side handling lands in the follow-up iframe work (see
+ * Phase 6 in this plan).
+ */
+export type OpenOptions =
+  | undefined
+  | { view?: 'home'; board?: string }
+  | { view: 'new-post'; title?: string; body?: string; board?: string }
+  | { view: 'changelog'; entryId?: string }
+  | { view: 'help'; query?: string }
+  | { postId: string }
+  | { articleId: string }
+
+export interface WidgetUser {
+  id: string
+  name: string
+  email: string
+  avatarUrl?: string | null
 }
 
 export interface WidgetTheme {
@@ -598,10 +623,18 @@ export interface WidgetTheme {
   themeMode?: 'light' | 'dark' | 'user'
 }
 
-/** Events emitted by the widget iframe. */
+/**
+ * Events emitted by the widget iframe. `open` and `close` carry context about
+ * which view is showing so subscribers can react to deep-link flows.
+ */
 export interface EventMap {
   ready: Record<string, never>
-  open: Record<string, never>
+  open: {
+    view?: 'home' | 'new-post' | 'changelog' | 'help'
+    postId?: string
+    articleId?: string
+    entryId?: string
+  }
   close: Record<string, never>
   'post:created': {
     id: string
@@ -613,10 +646,12 @@ export interface EventMap {
   'comment:created': { postId: string; commentId: string; parentId: string | null }
   identify: {
     success: boolean
-    user: { id: string; name: string; email: string } | null
+    user: WidgetUser | null
     anonymous: boolean
     error?: string
   }
+  /** Fires when an anonymous user supplies an email inline. */
+  'email-submitted': { email: string }
 }
 
 export type EventName = keyof EventMap
@@ -1623,6 +1658,68 @@ describe('sdk', () => {
     expect(launcher).not.toBeNull()
     expect(launcher.style.display).not.toBe('none')
   })
+
+  it('isOpen tracks panel state', () => {
+    const sdk = createSDK()
+    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    expect(sdk.isOpen()).toBe(false)
+    sdk.dispatch('open')
+    expect(sdk.isOpen()).toBe(true)
+    sdk.dispatch('close')
+    expect(sdk.isOpen()).toBe(false)
+  })
+
+  it('getUser / isIdentified reflect identify-result messages', () => {
+    const sdk = createSDK()
+    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    expect(sdk.getUser()).toBeNull()
+    expect(sdk.isIdentified()).toBe(false)
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: 'https://feedback.acme.com',
+        data: {
+          type: 'quackback:identify-result',
+          success: true,
+          user: { id: 'u1', name: 'Ada', email: 'a@b.c' },
+        },
+      })
+    )
+    expect(sdk.getUser()).toEqual({ id: 'u1', name: 'Ada', email: 'a@b.c' })
+    expect(sdk.isIdentified()).toBe(true)
+    sdk.dispatch('logout')
+    expect(sdk.getUser()).toBeNull()
+    expect(sdk.isIdentified()).toBe(false)
+  })
+
+  it('open emits an open event with view context', () => {
+    const sdk = createSDK()
+    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    const seen: unknown[] = []
+    sdk.dispatch('on', 'open', (payload: unknown) => seen.push(payload))
+    sdk.dispatch('open', { view: 'new-post', title: 'Bug:' })
+    expect(seen).toHaveLength(1)
+    expect((seen[0] as { view: string }).view).toBe('new-post')
+  })
+
+  it('open passes deep-link fields to the iframe (postId/articleId)', () => {
+    const sdk = createSDK()
+    const postMessage = vi.fn()
+    vi.spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get').mockReturnValue({
+      postMessage,
+    } as unknown as Window)
+    sdk.dispatch('init', { appUrl: 'https://feedback.acme.com' })
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: 'https://feedback.acme.com',
+        data: { type: 'quackback:ready' },
+      })
+    )
+    sdk.dispatch('open', { postId: 'post_01h' })
+    expect(postMessage).toHaveBeenCalledWith(
+      { type: 'quackback:open', data: { postId: 'post_01h' } },
+      'https://feedback.acme.com'
+    )
+  })
 })
 ```
 
@@ -1636,7 +1733,14 @@ Expected: FAIL.
 `packages/widget/src/core/sdk.ts`:
 
 ```ts
-import type { InitOptions, Identity, OpenOptions, EventName, EventHandler } from '../types'
+import type {
+  InitOptions,
+  Identity,
+  OpenOptions,
+  WidgetUser,
+  EventName,
+  EventHandler,
+} from '../types'
 import { createEmitter, type Emitter } from './events'
 import { createBridge, type Bridge } from './postmessage'
 import { createLauncher, type LauncherHandle } from './launcher'
@@ -1660,6 +1764,10 @@ type Command =
 
 export interface SDK {
   dispatch(command: Command, arg1?: unknown, arg2?: unknown): unknown
+  // State queries — synchronous reads of internal state
+  isOpen(): boolean
+  getUser(): WidgetUser | null
+  isIdentified(): boolean
 }
 
 export function createSDK(): SDK {
@@ -1672,6 +1780,9 @@ export function createSDK(): SDK {
   let metadata: Record<string, string> | null = null
   let pendingIdentify: Identity | null = null
   let pendingOpen: OpenOptions | null = null
+  // Tracked state for synchronous getters (isOpen, getUser, isIdentified)
+  let panelOpen = false
+  let currentUser: WidgetUser | null = null
   const emitter: Emitter = createEmitter()
 
   function iframeOrigin(): string {
@@ -1715,14 +1826,22 @@ export function createSDK(): SDK {
       case 'quackback:close':
         dispatch('close')
         break
-      case 'quackback:identify-result':
+      case 'quackback:identify-result': {
+        const m = msg as { success?: boolean; user?: WidgetUser; error?: string }
+        currentUser = m.user ?? null
         emitter.emit('identify', {
-          success: !!(msg as { success: boolean }).success,
-          user: (msg as { user?: { id: string; name: string; email: string } }).user ?? null,
-          anonymous: !!(msg as { success: boolean }).success && !(msg as { user?: unknown }).user,
-          error: (msg as { error?: string }).error,
+          success: !!m.success,
+          user: currentUser,
+          anonymous: !!m.success && !m.user,
+          error: m.error,
         })
         break
+      }
+      case 'quackback:auth-change': {
+        const m = msg as { user?: WidgetUser }
+        currentUser = m.user ?? null
+        break
+      }
       case 'quackback:event': {
         const name = (msg as { name?: string }).name
         if (name)
@@ -1789,20 +1908,36 @@ export function createSDK(): SDK {
       case 'logout':
         panel?.hide()
         launcher?.setOpen(false)
+        panelOpen = false
+        currentUser = null
         if (ready) bridge!.send('quackback:identify', null as unknown as undefined)
         else pendingIdentify = null
         return
       case 'open': {
-        const opts = (a as OpenOptions | undefined) ?? {}
+        const opts = (a as OpenOptions) ?? {}
+        // Pass through the entire payload — the iframe selects what it knows how to
+        // render today (view/title/board). Fields like postId/articleId/body/query/
+        // entryId flow through untouched and are handled once the iframe adds
+        // deep-linking support (follow-up work).
         if (ready && bridge) bridge.send('quackback:open', opts)
         else pendingOpen = opts
         panel?.show()
         launcher?.setOpen(true)
+        panelOpen = true
+        // Emit open event with context so subscribers can react to deep links
+        const ctx = opts as { view?: string; postId?: string; articleId?: string; entryId?: string }
+        emitter.emit('open', {
+          view: ctx.view as 'home' | 'new-post' | 'changelog' | 'help' | undefined,
+          postId: ctx.postId,
+          articleId: ctx.articleId,
+          entryId: ctx.entryId,
+        })
         return
       }
       case 'close':
         panel?.hide()
         launcher?.setOpen(false)
+        panelOpen = false
         emitter.emit('close', {})
         return
       case 'showLauncher':
@@ -1851,13 +1986,20 @@ export function createSDK(): SDK {
         metadata = null
         pendingIdentify = null
         pendingOpen = null
+        panelOpen = false
+        currentUser = null
         config = null
         theme = null
         return
     }
   }
 
-  return { dispatch }
+  return {
+    dispatch,
+    isOpen: () => panelOpen,
+    getUser: () => currentUser,
+    isIdentified: () => currentUser !== null,
+  }
 }
 ```
 
@@ -1891,13 +2033,23 @@ import type {
   InitOptions,
   Identity,
   OpenOptions,
+  WidgetUser,
   EventName,
   EventMap,
   EventHandler,
   Unsubscribe,
 } from './types'
 
-export type { InitOptions, Identity, OpenOptions, EventName, EventMap, EventHandler, Unsubscribe }
+export type {
+  InitOptions,
+  Identity,
+  OpenOptions,
+  WidgetUser,
+  EventName,
+  EventMap,
+  EventHandler,
+  Unsubscribe,
+}
 
 const sdk = createSDK()
 
@@ -1922,6 +2074,16 @@ export const Quackback = {
   },
   hideLauncher(): void {
     sdk.dispatch('hideLauncher')
+  },
+  // State queries — synchronous reads, no server round-trip
+  isOpen(): boolean {
+    return sdk.isOpen()
+  },
+  getUser(): WidgetUser | null {
+    return sdk.getUser()
+  },
+  isIdentified(): boolean {
+    return sdk.isIdentified()
   },
   on<T extends EventName>(name: T, handler: EventHandler<T>): Unsubscribe {
     return sdk.dispatch('on', name, handler) as Unsubscribe
@@ -1957,6 +2119,9 @@ describe('public API', () => {
     expect(typeof Quackback.close).toBe('function')
     expect(typeof Quackback.showLauncher).toBe('function')
     expect(typeof Quackback.hideLauncher).toBe('function')
+    expect(typeof Quackback.isOpen).toBe('function')
+    expect(typeof Quackback.getUser).toBe('function')
+    expect(typeof Quackback.isIdentified).toBe('function')
     expect(typeof Quackback.on).toBe('function')
     expect(typeof Quackback.off).toBe('function')
     expect(typeof Quackback.metadata).toBe('function')
@@ -2788,17 +2953,37 @@ git commit -m "chore(widget): prepare v0.1.0 publish"
 
 ---
 
+## Phase 6 — Iframe-side deep linking (follow-up)
+
+**Status:** Not implemented in this plan. The npm SDK (Tasks 2, 9, 10) _types_ the deep-link fields (`postId`, `articleId`, `entryId`, `body`, `query`) and _passes them through_ via postMessage. The iframe today only interprets `view`, `title`, and `board`. Full deep-linking requires separate work in the portal widget.
+
+**Files that need changes** (for future work — not this plan):
+
+- `~/quackback/apps/web/src/components/widget/widget-home.tsx` — when `postId` arrives in the `quackback:open` message, navigate to that post view
+- `~/quackback/apps/web/src/components/widget/widget-post-detail.tsx` — accept a deep-link entry without requiring the home list first
+- `~/quackback/apps/web/src/components/widget/widget-comment-form.tsx` or the new-post form equivalent — accept a `body` pre-fill alongside the existing `title`
+- `~/quackback/apps/web/src/components/widget/widget-home.tsx` (help tab) — pre-fill a search `query`
+- Changelog view — accept `entryId` to scroll/anchor to a specific entry
+- Update `apps/web/src/lib/shared/widget/types.ts` `WidgetInboundMessages['quackback:open']` to match the new shape
+
+**Why defer:** changes to the widget iframe are larger in scope (multiple React components, new routes/states) and carry product-UX decisions (what does "deep-link to an article" look like — is there a back button? does it enter the help tab first?). Shipping the SDK surface first means integrators can write forward-compatible code today; iframe rendering catches up in a subsequent release without another SDK version bump.
+
+**Gate for v0.1.0 of `@quackback/widget`:** nothing on this phase blocks publish. Document in the package README which fields are functional (`view`, `title`, `board`) and which are reserved for upcoming iframe support (`postId`, `articleId`, `entryId`, `body`, `query`).
+
+---
+
 ## Self-Review
 
 **Spec coverage:** Each section of the design maps to a task group:
 
 - Cross-platform unification → Tasks 0.1–0.5
 - Extract SDK into real modules → Tasks 3–9
-- Public API surface + types → Tasks 2, 10 (including `showLauncher` / `hideLauncher`)
+- Public API surface + types (including state getters + extended `open` payload) → Tasks 2, 9, 10
 - Server compat layer → Tasks 11–13
 - React adapter → Tasks 14–15
 - Dogfood on website → Task 16
 - Publishing pipeline → Tasks 17–18
+- Iframe-side deep-link rendering → Phase 6 (follow-up, not blocking v0.1.0)
 
 **Known gaps / follow-ups:**
 
@@ -2807,8 +2992,11 @@ git commit -m "chore(widget): prepare v0.1.0 publish"
 3. **Protocol versioning** — noted in the analysis; safe to defer because the current protocol is preserved byte-for-byte.
 4. **Size budget verification** — only sanity-checked in Task 12; add a CI guard once 0.1.0 is shipped.
 5. **Intercom-style `trackEvent`** — not added yet; reassess once feedback widgets grow into event analytics.
+6. **Iframe-side deep-linking** — Phase 6. SDK surface ships with the types and wire-protocol support; iframe rendering of `postId` / `articleId` / `entryId` / `body` / `query` is a separate iframe PR.
+7. **Runtime `setLocale`** — Tier 2 imperative method deferred; add when a host app surfaces real demand.
+8. **Unread count** — tracked in the ideal-UX discussion as Tier 2; add when the server surfaces unread notifications through the widget.
 
-**Type consistency check:** `InitOptions`, `Identity`, `OpenOptions`, `WidgetTheme`, `EventMap`, `EventName`, `EventHandler`, `Unsubscribe` names stay consistent from Task 2 through Task 18. The dispatcher's `Command` union in Task 9 (`init | identify | logout | open | close | showLauncher | hideLauncher | destroy | metadata | on | off`) matches the method surface exposed in Task 10. Mobile field names (`appUrl`, `placement`) from Phase 0 match web's `InitOptions` in Task 2. `ResolvedTheme` is internal to `theme.ts` only.
+**Type consistency check:** `InitOptions`, `Identity`, `OpenOptions`, `WidgetUser`, `WidgetTheme`, `EventMap`, `EventName`, `EventHandler`, `Unsubscribe` names stay consistent from Task 2 through Task 18. The dispatcher's `Command` union in Task 9 (`init | identify | logout | open | close | showLauncher | hideLauncher | destroy | metadata | on | off`) matches the imperative methods exposed in Task 10. The state getters (`isOpen`, `getUser`, `isIdentified`) live on the `SDK` interface alongside `dispatch` and are re-exported on the public `Quackback` object. Mobile field names (`appUrl`, `placement`) from Phase 0 match web's `InitOptions` in Task 2. `ResolvedTheme` is internal to `theme.ts` only.
 
 **Placeholder scan:** no "TBD", "similar to Task N", or unimplemented code paths. Task 14's second test (`rerender` + `identify` spy) is intentionally a behavioral smoke test — sharpen if the provider API exposes a spy-friendly hook during implementation. Task 0.1 Step 1 (audit `appId`) is a real audit that may or may not surface code to delete — if `appId` IS in use, plan only removes the config field after finding a replacement.
 
