@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Required for npm trusted publishing (OIDC)
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -19,8 +19,10 @@ jobs:
       - run: bun run --filter @quackback/widget build
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+      # Trusted publishing requires npm >= 11.5.1; Node 22 ships with npm 10.x
+      - run: npm install -g npm@latest
+      # No NODE_AUTH_TOKEN — OIDC replaces the token; npmjs.com must have a
+      # trusted publisher configured for this repo + workflow.
       - run: cd packages/widget && npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
