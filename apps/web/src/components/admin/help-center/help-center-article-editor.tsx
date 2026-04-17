@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { Loader2 } from 'lucide-react'
 import { ArrowLeftIcon } from '@heroicons/react/24/solid'
+import { CategoryIcon } from '@/components/help-center/category-icon'
 import { ArrowTopRightOnSquareIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
@@ -152,7 +153,9 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
 
   const currentCategory = categories.find((c) => c.id === categoryId)
   const publicArticleUrl =
-    article.category?.slug && article.slug ? `/hc/${article.category.slug}/${article.slug}` : null
+    article.category?.slug && article.slug
+      ? `/hc/articles/${article.category.slug}/${article.slug}`
+      : null
 
   return (
     <Form {...form}>
@@ -200,7 +203,9 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
                 >
                   <SelectValue placeholder="Add to category...">
                     <span className="flex items-center gap-1.5 truncate">
-                      {currentCategory?.icon && <span>{currentCategory.icon}</span>}
+                      {currentCategory?.icon && (
+                        <CategoryIcon icon={currentCategory.icon} className="w-4 h-4 shrink-0" />
+                      )}
                       <span className="truncate">{currentCategory?.name ?? 'Category'}</span>
                     </span>
                   </SelectValue>
@@ -209,7 +214,7 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       <span className="flex items-center gap-1.5">
-                        {cat.icon && <span>{cat.icon}</span>}
+                        {cat.icon && <CategoryIcon icon={cat.icon} className="w-4 h-4 shrink-0" />}
                         <span className="truncate">{cat.name}</span>
                       </span>
                     </SelectItem>

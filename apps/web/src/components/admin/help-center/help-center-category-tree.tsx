@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { ChevronRightIcon } from '@heroicons/react/20/solid'
+import { CategoryIcon } from '@/components/help-center/category-icon'
 import { PlusIcon, PencilIcon, TrashIcon, FolderPlusIcon } from '@heroicons/react/16/solid'
 import { cn } from '@/lib/shared/utils'
 import {
@@ -200,7 +201,7 @@ function TreeRow({
         onClick={onNavigate}
         className="flex-1 min-w-0 flex items-center gap-1.5 pr-1 text-left h-full"
       >
-        <span className="shrink-0 text-sm leading-none">{category.icon || '📁'}</span>
+        <CategoryIcon icon={category.icon} className="w-4 h-4 shrink-0 text-muted-foreground" />
         <span className="truncate">{category.name}</span>
       </button>
       <span

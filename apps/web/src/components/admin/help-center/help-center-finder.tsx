@@ -10,6 +10,7 @@ import {
   ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline'
 import { ChevronRightIcon } from '@heroicons/react/16/solid'
+import { CategoryIcon } from '@/components/help-center/category-icon'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/shared/spinner'
@@ -360,7 +361,7 @@ function SubCategoryChipRow({ categories, onNavigate, onNew, canAddSub }: SubCat
             'transition-colors'
           )}
         >
-          {cat.icon && <span className="text-sm leading-none">{cat.icon}</span>}
+          {cat.icon && <CategoryIcon icon={cat.icon} className="w-4 h-4 shrink-0" />}
           <span className="truncate max-w-[160px]">{cat.name}</span>
           <span className="text-muted-foreground tabular-nums">{cat.articleCount}</span>
         </button>
@@ -428,7 +429,7 @@ function DeletedItemsView() {
           <div className="rounded-xl overflow-hidden shadow-sm divide-y divide-border/50 bg-card border border-border/50">
             {deletedCategories.map((cat) => (
               <div key={cat.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-base">{cat.icon || '📁'}</span>
+                <CategoryIcon icon={cat.icon} className="w-5 h-5 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{cat.name}</p>
                   {cat.deletedAt && (

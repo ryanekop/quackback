@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { PlusIcon } from '@heroicons/react/24/solid'
+import { CategoryIcon } from '@/components/help-center/category-icon'
 import {
   Select,
   SelectContent,
@@ -58,7 +59,7 @@ function SidebarContent({
               {categories?.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>
                   <span className="flex items-center gap-1.5">
-                    {cat.icon && <span>{cat.icon}</span>}
+                    {cat.icon && <CategoryIcon icon={cat.icon} className="w-4 h-4 shrink-0" />}
                     <span className="truncate">{cat.name}</span>
                   </span>
                 </SelectItem>
