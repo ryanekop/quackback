@@ -286,7 +286,7 @@ export function HelpCenterArticleEditor({ articleId }: HelpCenterArticleEditorPr
         </div>
 
         {/* Editor body — constrained to reader width */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="mx-auto w-full max-w-4xl px-6 sm:px-10 py-12">
             {updateArticleMutation.isError && (
               <FormError message={updateArticleMutation.error.message} className="mb-4" />
