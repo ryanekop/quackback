@@ -13,9 +13,20 @@ import { test, expect } from '@playwright/test'
  */
 
 test.describe('Portal Auth Dialog', () => {
+  test.describe.configure({ mode: 'serial' })
+
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
+  })
+
+  test.afterEach(async ({ page }) => {
+    // Close any open dialog to avoid state leaking into the next serial test
+    const dialog = page.getByRole('dialog')
+    if ((await dialog.count()) > 0) {
+      await page.keyboard.press('Escape')
+      await dialog.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {})
+    }
   })
 
   // ---------------------------------------------------------------------------

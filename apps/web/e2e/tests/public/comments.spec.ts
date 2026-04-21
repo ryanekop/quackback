@@ -92,10 +92,18 @@ test.describe('Unauthenticated user — comments section', () => {
 
   // -------------------------------------------------------------------------
   test('comment form textarea is NOT visible to unauthenticated users', async ({ page }) => {
-    // CommentThread renders either a <textarea> (form) OR the "Sign in" prompt,
-    // never both. Unauthenticated → no form.
-    const textarea = page.locator('textarea[placeholder*="comment" i]')
-    await expect(textarea).not.toBeVisible()
+    // CommentThread renders the "Sign in" prompt instead of a comment form for
+    // unauthenticated users. Hidden reply-form textareas inside comments may report
+    // as visible to Playwright (CSS grid 0fr + overflow:hidden doesn't clip bounding rect).
+    // Assert the sign-in prompt is present and that the top-level comment form area
+    // does NOT contain a submit button (the form wrapper is distinct from reply forms).
+    await expect(page.getByText(/sign in to comment/i)).toBeVisible({ timeout: 10000 })
+    // The main form area should be the sign-in prompt, not a form with a submit button
+    const mainCommentSubmit = page
+      .locator('[data-testid="comments-section"], .space-y-6')
+      .first()
+      .getByRole('button', { name: /^comment$/i })
+    await expect(mainCommentSubmit).not.toBeVisible()
   })
 
   // -------------------------------------------------------------------------

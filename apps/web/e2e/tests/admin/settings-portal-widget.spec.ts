@@ -49,8 +49,7 @@ test.describe('Admin Portal Widget Settings', () => {
     // Turn it on if it is off
     if (!wasChecked) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
-      await expect(verifiedSwitch).toBeChecked()
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     } else {
       // Already on — verify it is on
       await expect(verifiedSwitch).toBeChecked()
@@ -68,18 +67,17 @@ test.describe('Admin Portal Widget Settings', () => {
     // Ensure it is on, then turn it off
     if (!wasChecked) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
     await expect(verifiedSwitch).toBeChecked()
 
     await verifiedSwitch.click()
-    await page.waitForTimeout(600)
-    await expect(verifiedSwitch).not.toBeChecked()
+    await expect(verifiedSwitch).not.toBeChecked({ timeout: 5000 })
 
     // Restore original state
     if (wasChecked) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
   })
 
@@ -91,7 +89,7 @@ test.describe('Admin Portal Widget Settings', () => {
 
     if (!(await verifiedSwitch.isChecked())) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
 
     await expect(page.getByText('Backend framework')).toBeVisible({ timeout: 5000 })
@@ -109,7 +107,7 @@ test.describe('Admin Portal Widget Settings', () => {
 
     if (!(await verifiedSwitch.isChecked())) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
 
     const frameworkSelect = page.getByRole('combobox').filter({
@@ -137,7 +135,7 @@ test.describe('Admin Portal Widget Settings', () => {
 
     if (!(await verifiedSwitch.isChecked())) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
 
     const frameworkSelect = page.getByRole('combobox').filter({
@@ -163,18 +161,18 @@ test.describe('Admin Portal Widget Settings', () => {
 
     if (!(await verifiedSwitch.isChecked())) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
 
     // Switch to the server code tab (route.ts for Next.js)
     const serverTab = page.getByRole('button', { name: 'route.ts' })
-    if ((await serverTab.count()) > 0) {
-      await serverTab.click()
+    if ((await serverTab.count()) === 0) return
 
-      // The code block should contain HS256 and ssoToken (JWT approach)
-      await expect(page.getByText(/HS256/).first()).toBeVisible({ timeout: 5000 })
-      await expect(page.getByText(/ssoToken/).first()).toBeVisible()
-    }
+    await serverTab.click()
+
+    // The code block should contain HS256 and ssoToken (JWT approach)
+    await expect(page.getByText(/HS256/).first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/ssoToken/).first()).toBeVisible()
   })
 
   test('client-side code tab shows ssoToken (not old hash variable)', async ({ page }) => {
@@ -185,7 +183,7 @@ test.describe('Admin Portal Widget Settings', () => {
 
     if (!(await verifiedSwitch.isChecked())) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
 
     const identifyTab = page.getByRole('button', { name: 'identify.tsx' })
@@ -252,7 +250,7 @@ test.describe('Admin Portal Widget Settings', () => {
 
     if (!(await verifiedSwitch.isChecked())) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
 
     await expect(page.getByText('Widget secret')).toBeVisible({ timeout: 5000 })
@@ -266,7 +264,7 @@ test.describe('Admin Portal Widget Settings', () => {
 
     if (!(await verifiedSwitch.isChecked())) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
 
     const regenerateButton = page.getByRole('button', { name: 'Regenerate' })
@@ -282,7 +280,7 @@ test.describe('Admin Portal Widget Settings', () => {
 
     if (!(await verifiedSwitch.isChecked())) {
       await verifiedSwitch.click()
-      await page.waitForTimeout(600)
+      await expect(verifiedSwitch).toBeChecked({ timeout: 5000 })
     }
 
     await expect(page.getByText('Keep this secret server-side only')).toBeVisible({ timeout: 5000 })

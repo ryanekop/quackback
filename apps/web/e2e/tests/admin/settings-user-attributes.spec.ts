@@ -215,9 +215,8 @@ test.describe('Admin User Attributes Settings', () => {
       .locator('div.flex.items-center.gap-4')
       .filter({ has: page.getByText(attrLabel, { exact: true }) })
     if ((await attrRow.count()) > 0) {
-      await expect(attrRow.first().getByText('Text').first().or(attrRow.first().locator('code').first())).toBeVisible({
-        timeout: 10000,
-      })
+      // Check that the row contains a code element (the key) which confirms the attribute rendered
+      await expect(attrRow.first().locator('code').first()).toBeVisible({ timeout: 10000 })
     } else {
       // Fallback: just check the label is visible
       await expect(page.getByText(attrLabel)).toBeVisible({ timeout: 10000 })

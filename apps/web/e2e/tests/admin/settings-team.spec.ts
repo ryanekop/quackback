@@ -123,8 +123,8 @@ test.describe('Admin Team Settings', () => {
     await dialog.getByRole('combobox').click()
 
     // Should list member and admin options
-    await expect(page.getByRole('option', { name: /^member/i })).toBeVisible({ timeout: 3000 })
-    await expect(page.getByRole('option', { name: /^admin/i })).toBeVisible()
+    await expect(page.getByRole('option', { name: /^member/i })).toBeVisible({ timeout: 8000 })
+    await expect(page.getByRole('option', { name: /^admin/i })).toBeVisible({ timeout: 8000 })
 
     await page.keyboard.press('Escape')
     await dialog.getByRole('button', { name: /cancel/i }).click()

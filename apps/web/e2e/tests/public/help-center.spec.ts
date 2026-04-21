@@ -327,12 +327,14 @@ test.describe('Public Help Center', () => {
     const breadcrumb = page.getByRole('navigation', { name: 'Breadcrumb' })
     await expect(breadcrumb).toBeVisible()
 
-    // Navigate back to the category via breadcrumb
-    const categoryLink = breadcrumb.locator('a').last()
-    if ((await categoryLink.count()) > 0) {
-      await categoryLink.click()
+    // In the article breadcrumb the category is rendered as a non-link <span>
+    // (the last item in HelpCenterBreadcrumbs is always a span, not a Link).
+    // The only <a> present is the "Help Center" root link.
+    const breadcrumbLink = breadcrumb.locator('a').last()
+    if ((await breadcrumbLink.count()) > 0) {
+      await breadcrumbLink.click()
       await page.waitForLoadState('networkidle')
-      await expect(page).toHaveURL(/\/hc\/categories\//)
+      await expect(page).toHaveURL(/\/hc/)
     }
   })
 

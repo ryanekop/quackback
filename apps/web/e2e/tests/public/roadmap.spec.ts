@@ -57,9 +57,9 @@ test.describe('Public Roadmap', () => {
     }
 
     // RoadmapColumn renders a CardTitle for each status shown on the roadmap
-    // Find heading elements inside column cards
-    const columnCards = page.locator('[class*="card"]').filter({
-      has: page.locator('[class*="CardTitle"], [class*="card-title"]'),
+    // shadcn Card uses data-slot attributes, not CSS class names
+    const columnCards = page.locator('[data-slot="card"]').filter({
+      has: page.locator('[data-slot="card-title"]'),
     })
 
     await expect(columnCards.first()).toBeVisible({ timeout: 10000 })
@@ -73,8 +73,8 @@ test.describe('Public Roadmap', () => {
     }
 
     // Each column has a Badge next to the title showing a numeric count
-    // The badge is a sibling of the CardTitle inside CardHeader
-    const columnBadges = page.locator('[class*="CardHeader"] [class*="badge"], [class*="card-header"] [class*="badge"]')
+    // shadcn Card uses data-slot attributes; Badge uses data-slot="badge"
+    const columnBadges = page.locator('[data-slot="card-header"] [data-slot="badge"]')
     await expect(columnBadges.first()).toBeVisible({ timeout: 10000 })
     const badgeText = await columnBadges.first().textContent()
     expect(badgeText).toMatch(/^\d+$/)
@@ -143,8 +143,8 @@ test.describe('Public Roadmap', () => {
       return
     }
 
-    // Each card shows a Badge with the board name
-    const boardBadge = roadmapCards.first().locator('[class*="badge"]')
+    // Each card shows a Badge with the board name; shadcn Badge uses data-slot="badge"
+    const boardBadge = roadmapCards.first().locator('[data-slot="badge"]')
     await expect(boardBadge).toBeVisible()
   })
 

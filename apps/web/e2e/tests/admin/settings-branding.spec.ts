@@ -180,13 +180,16 @@ test.describe('Admin Branding Settings', () => {
     const darkButton = page.getByRole('button', { name: /^Dark$/i })
 
     if ((await lightButton.count()) > 0 && (await darkButton.count()) > 0) {
-      // Click Dark mode preview
-      await darkButton.first().click()
-      await page.waitForTimeout(300)
+      // Only click a button if it is enabled (buttons are disabled when themeMode forces that mode)
+      if (await darkButton.first().isEnabled()) {
+        await darkButton.first().click()
+        await page.waitForTimeout(300)
+      }
 
-      // Click Light mode preview
-      await lightButton.first().click()
-      await page.waitForTimeout(300)
+      if (await lightButton.first().isEnabled()) {
+        await lightButton.first().click()
+        await page.waitForTimeout(300)
+      }
     }
   })
 

@@ -264,11 +264,10 @@ test.describe('Public Voting', () => {
       // Wait for URL to change to post detail page
       await page.waitForURL(/\/posts\//)
 
-      // Wait for detail page vote button specifically (has text-lg class, list view has text-sm)
-      // Scope to the detail view vote button that contains the text-lg vote count
-      const detailVoteButton = page.getByTestId('vote-button').filter({
-        has: page.locator('[data-testid="vote-count"].text-lg'),
-      })
+      // Wait for detail page vote button specifically.
+      // The VoteSidebar vote button is in a Suspense boundary; use aria-pressed to confirm it loaded.
+      // Both list and detail use text-sm, so just use the first vote button on the detail page.
+      const detailVoteButton = page.getByTestId('vote-button').first()
       await expect(detailVoteButton).toBeVisible({ timeout: 10000 })
 
       const voteCountSpan = detailVoteButton.getByTestId('vote-count')
@@ -565,10 +564,8 @@ test.describe('Voting — independence and persistence', () => {
       await page.waitForURL(/\/posts\//)
       await page.waitForLoadState('networkidle')
 
-      // Detail page vote button has a text-lg vote count
-      const detailVoteButton = page.getByTestId('vote-button').filter({
-        has: page.locator('[data-testid="vote-count"].text-lg'),
-      })
+      // Detail page vote button — use first vote button (VoteSidebar, in DOM order)
+      const detailVoteButton = page.getByTestId('vote-button').first()
       await expect(detailVoteButton).toBeVisible({ timeout: 10000 })
 
       const detailCount = await detailVoteButton.getByTestId('vote-count').textContent()
