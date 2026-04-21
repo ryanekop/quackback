@@ -7,7 +7,7 @@ test.describe('Admin Permissions Settings', () => {
   })
 
   test('page loads and shows permissions heading', async ({ page }) => {
-    await expect(page.getByText('Permissions')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { name: 'Permissions' })).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByText('Control who can access your portal and what they can do.')
     ).toBeVisible({ timeout: 10000 })

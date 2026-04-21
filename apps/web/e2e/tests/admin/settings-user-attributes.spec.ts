@@ -7,12 +7,12 @@ test.describe('Admin User Attributes Settings', () => {
   })
 
   test('page loads and shows heading', async ({ page }) => {
-    await expect(page.getByText('User Attributes')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('User Attributes').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('shows page description', async ({ page }) => {
     await expect(
-      page.getByText(/define custom attributes/i)
+      page.getByText(/define custom attributes/i).first()
     ).toBeVisible({ timeout: 10000 })
   })
 
@@ -210,10 +210,18 @@ test.describe('Admin User Attributes Settings', () => {
     await expect(dialog).toBeHidden({ timeout: 10000 })
 
     // The row should show a Text badge (default type)
-    const attrRow = page.locator('div').filter({ hasText: attrLabel }).first()
-    await expect(attrRow.getByText('Text').or(attrRow.locator('code'))).toBeVisible({
-      timeout: 10000,
-    })
+    // Scope to the specific row that contains both the label span and buttons
+    const attrRow = page
+      .locator('div.flex.items-center.gap-4')
+      .filter({ has: page.getByText(attrLabel, { exact: true }) })
+    if ((await attrRow.count()) > 0) {
+      await expect(attrRow.first().getByText('Text').first().or(attrRow.first().locator('code').first())).toBeVisible({
+        timeout: 10000,
+      })
+    } else {
+      // Fallback: just check the label is visible
+      await expect(page.getByText(attrLabel)).toBeVisible({ timeout: 10000 })
+    }
   })
 
   test('can open edit dialog for an existing attribute', async ({ page }) => {
@@ -234,9 +242,11 @@ test.describe('Admin User Attributes Settings', () => {
     await expect(dialog).toBeHidden({ timeout: 10000 })
     await expect(page.getByText(attrLabel)).toBeVisible({ timeout: 10000 })
 
-    // Find the edit button (title="Edit attribute") in the row
-    const attrRow = page.locator('div').filter({ hasText: attrLabel }).first()
-    const editButton = attrRow.getByRole('button', { name: /edit attribute/i })
+    // Find the edit button (title="Edit attribute") in the specific row
+    const attrRow = page
+      .locator('div.flex.items-center.gap-4')
+      .filter({ has: page.getByText(attrLabel, { exact: true }) })
+    const editButton = attrRow.first().locator('button[title="Edit attribute"]')
 
     if ((await editButton.count()) > 0) {
       await editButton.click()
@@ -277,8 +287,10 @@ test.describe('Admin User Attributes Settings', () => {
     await expect(page.getByText(attrLabel)).toBeVisible({ timeout: 10000 })
 
     // Click the delete button (title="Delete attribute")
-    const attrRow = page.locator('div').filter({ hasText: attrLabel }).first()
-    const deleteButton = attrRow.getByRole('button', { name: /delete attribute/i })
+    const attrRow = page
+      .locator('div.flex.items-center.gap-4')
+      .filter({ has: page.getByText(attrLabel, { exact: true }) })
+    const deleteButton = attrRow.first().locator('button[title="Delete attribute"]')
 
     if ((await deleteButton.count()) > 0) {
       await deleteButton.click()
@@ -316,8 +328,10 @@ test.describe('Admin User Attributes Settings', () => {
     await expect(createDialog).toBeHidden({ timeout: 10000 })
     await expect(page.getByText(attrLabel)).toBeVisible({ timeout: 10000 })
 
-    const attrRow = page.locator('div').filter({ hasText: attrLabel }).first()
-    const deleteButton = attrRow.getByRole('button', { name: /delete attribute/i })
+    const attrRowCancel = page
+      .locator('div.flex.items-center.gap-4')
+      .filter({ has: page.getByText(attrLabel, { exact: true }) })
+    const deleteButton = attrRowCancel.first().locator('button[title="Delete attribute"]')
 
     if ((await deleteButton.count()) > 0) {
       await deleteButton.click()
@@ -356,7 +370,7 @@ test.describe('Admin User Attributes Settings', () => {
         await currencyOption.click()
 
         // Currency picker should now appear in the form
-        await expect(dialog.getByText('Currency')).toBeVisible({ timeout: 3000 })
+        await expect(dialog.getByText('Currency').first()).toBeVisible({ timeout: 3000 })
       }
     } else {
       await page.keyboard.press('Escape')

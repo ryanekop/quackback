@@ -82,9 +82,9 @@ test.describe('Admin Segments Settings', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    // Type selector buttons (manual / dynamic)
-    await expect(dialog.getByText('Manual')).toBeVisible()
-    await expect(dialog.getByText('Dynamic')).toBeVisible()
+    // Type selector buttons (manual / dynamic) — text is lowercase in the DOM (CSS capitalize)
+    await expect(dialog.getByText('manual')).toBeVisible()
+    await expect(dialog.getByText('dynamic')).toBeVisible()
   })
 
   test('create dialog has name and description fields', async ({ page }) => {
@@ -148,8 +148,8 @@ test.describe('Admin Segments Settings', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    // Click the "Dynamic" type option
-    await dialog.getByText('Dynamic').click()
+    // Click the "dynamic" type option (text is lowercase in DOM; CSS capitalize makes it visually "Dynamic")
+    await dialog.getByText('dynamic').click()
 
     // Rule builder should appear
     await expect(dialog.getByText('Rules')).toBeVisible({ timeout: 3000 })
@@ -162,7 +162,7 @@ test.describe('Admin Segments Settings', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    await dialog.getByText('Dynamic').click()
+    await dialog.getByText('dynamic').click()
 
     const addConditionButton = dialog.getByRole('button', { name: /add condition/i })
     await expect(addConditionButton).toBeVisible({ timeout: 3000 })
@@ -181,7 +181,7 @@ test.describe('Admin Segments Settings', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    await dialog.getByText('Dynamic').click()
+    await dialog.getByText('dynamic').click()
     await dialog.getByRole('button', { name: /add condition/i }).click()
 
     // At least 2 comboboxes: attribute + operator
@@ -195,7 +195,7 @@ test.describe('Admin Segments Settings', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    await dialog.getByText('Dynamic').click()
+    await dialog.getByText('dynamic').click()
     await dialog.getByRole('button', { name: /add condition/i }).click()
 
     // Click the attribute combobox (second combobox — first is match all/any)
@@ -222,7 +222,7 @@ test.describe('Admin Segments Settings', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    await dialog.getByText('Dynamic').click()
+    await dialog.getByText('dynamic').click()
     await dialog.locator('#seg-name').fill(segmentName)
 
     // Add a condition
@@ -291,7 +291,7 @@ test.describe('Admin Segments Settings', () => {
       await expect(editDialog.getByRole('button', { name: /save changes/i })).toBeVisible()
 
       // Type selector should NOT be shown when editing
-      await expect(editDialog.getByText('Manual')).not.toBeVisible()
+      await expect(editDialog.getByText('manual')).not.toBeVisible()
 
       await editDialog.getByRole('button', { name: /cancel/i }).click()
       await expect(editDialog).toBeHidden({ timeout: 5000 })
@@ -386,7 +386,7 @@ test.describe('Admin Segments Settings', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
 
-    await dialog.getByText('Dynamic').click()
+    await dialog.getByText('dynamic').click()
     await dialog.getByRole('button', { name: /add condition/i }).click()
 
     // The match selector is the first combobox (renders "ALL" / "ANY")

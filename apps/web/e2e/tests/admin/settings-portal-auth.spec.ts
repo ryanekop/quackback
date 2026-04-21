@@ -45,7 +45,7 @@ test.describe('Admin Portal Authentication Settings', () => {
   })
 
   test('shows OAuth Providers section', async ({ page }) => {
-    await expect(page.getByText('OAuth Providers')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('OAuth Providers').first()).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByText('Allow users to sign in with third-party accounts')
     ).toBeVisible()

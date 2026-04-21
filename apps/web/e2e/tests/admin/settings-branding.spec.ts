@@ -7,14 +7,14 @@ test.describe('Admin Branding Settings', () => {
   })
 
   test('page loads and shows branding settings', async ({ page }) => {
-    await expect(page.getByText('Branding')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Branding').first()).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByText("Customize your portal's appearance and branding")
     ).toBeVisible({ timeout: 10000 })
   })
 
   test('shows Identity section with workspace name input', async ({ page }) => {
-    await expect(page.getByText('Identity')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Identity').first()).toBeVisible({ timeout: 10000 })
     await expect(page.getByLabel('Workspace Name')).toBeVisible({ timeout: 10000 })
   })
 
@@ -48,7 +48,7 @@ test.describe('Admin Branding Settings', () => {
   })
 
   test('shows Theme section with color preset swatches', async ({ page }) => {
-    await expect(page.getByText('Theme')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Theme', { exact: true })).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByText('Choose a preset to set your portal\'s color palette')
     ).toBeVisible()

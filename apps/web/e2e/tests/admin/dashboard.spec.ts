@@ -14,7 +14,7 @@ test.describe('Admin Dashboard', () => {
   })
 
   test('redirects /admin to /admin/feedback', async ({ page }) => {
-    await expect(page).toHaveURL('/admin/feedback')
+    await expect(page).toHaveURL(/\/admin\/feedback/)
   })
 
   test('renders the admin layout without crashing', async ({ page }) => {

@@ -7,8 +7,8 @@ test.describe('Admin Webhooks Settings', () => {
   })
 
   test('page loads and shows webhooks section', async ({ page }) => {
-    await expect(page.getByText('Webhooks')).toBeVisible({ timeout: 10000 })
-    await expect(page.getByText('Configured Webhooks')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Webhooks').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Configured Webhooks').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('shows page description', async ({ page }) => {
@@ -56,7 +56,7 @@ test.describe('Admin Webhooks Settings', () => {
     // Dialog should open
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 5000 })
-    await expect(dialog.getByText('Create Webhook')).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Create Webhook' })).toBeVisible()
   })
 
   test('create webhook dialog has URL input field', async ({ page }) => {
@@ -281,7 +281,7 @@ test.describe('Admin Webhooks Settings', () => {
 
           const dialog = page.getByRole('alertdialog')
           await expect(dialog).toBeVisible({ timeout: 5000 })
-          await expect(dialog.getByText('Delete Webhook')).toBeVisible()
+          await expect(dialog.getByRole('heading', { name: 'Delete Webhook' })).toBeVisible()
 
           await page.keyboard.press('Escape')
         }

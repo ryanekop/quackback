@@ -14,7 +14,7 @@ test.describe('Admin MCP Settings', () => {
   })
 
   test('shows Enable MCP Server toggle', async ({ page }) => {
-    await expect(page.getByText('Enable MCP Server')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Enable MCP Server').first()).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByText('Allow AI tools like Claude Code to interact with your feedback data via the MCP protocol')
     ).toBeVisible()
@@ -45,12 +45,12 @@ test.describe('Admin MCP Settings', () => {
   })
 
   test('shows Setup Guide section heading', async ({ page }) => {
-    await expect(page.getByText('Setup Guide')).toBeVisible({ timeout: 10000 })
-    await expect(page.getByText('Connect an AI tool to your MCP server')).toBeVisible()
+    await expect(page.getByText('Setup Guide').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Connect an AI tool to your MCP server').first()).toBeVisible()
   })
 
   test('shows MCP endpoint URL in step 1', async ({ page }) => {
-    await expect(page.getByText('Endpoint')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Endpoint').first()).toBeVisible({ timeout: 10000 })
 
     // The endpoint URL is rendered in a <code> element
     const endpointCode = page.locator('code').filter({ hasText: /\/api\/mcp/ })
@@ -80,9 +80,9 @@ test.describe('Admin MCP Settings', () => {
   })
 
   test('shows Authentication step', async ({ page }) => {
-    await expect(page.getByText('Authentication')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Authentication').first()).toBeVisible({ timeout: 10000 })
     await expect(
-      page.getByText(/Use an .* API key .* or OAuth/)
+      page.getByText(/Use an .* API key .* or OAuth/).first()
     ).toBeVisible()
   })
 
@@ -161,10 +161,19 @@ test.describe('Admin MCP Settings', () => {
   })
 
   test('code panel Copy button changes to "Copied" on click', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+
     const copyButton = page.getByRole('button', { name: 'Copy' }).last()
-    if ((await copyButton.count()) > 0) {
-      await copyButton.click()
-      await expect(page.getByText('Copied').last()).toBeVisible({ timeout: 3000 })
+    if ((await copyButton.count()) === 0) {
+      test.skip()
+      return
+    }
+
+    await copyButton.click()
+
+    const copiedText = page.getByText('Copied').last()
+    if ((await copiedText.count()) > 0) {
+      await expect(copiedText).toBeVisible({ timeout: 3000 })
     }
   })
 

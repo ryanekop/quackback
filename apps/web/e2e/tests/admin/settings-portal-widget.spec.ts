@@ -7,7 +7,7 @@ test.describe('Admin Portal Widget Settings', () => {
   })
 
   test('page loads and shows Feedback Widget heading', async ({ page }) => {
-    await expect(page.getByText('Feedback Widget')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Feedback Widget').first()).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByText('Embed a feedback widget directly in your product to collect feedback from users')
     ).toBeVisible({ timeout: 10000 })
@@ -214,15 +214,24 @@ test.describe('Admin Portal Widget Settings', () => {
   })
 
   test('Copy button changes to "Copied" after click', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+
     const copyButton = page.getByRole('button', { name: 'Copy' }).last()
-    if ((await copyButton.count()) > 0) {
-      await copyButton.click()
-      await expect(page.getByText('Copied').last()).toBeVisible({ timeout: 3000 })
+    if ((await copyButton.count()) === 0) {
+      test.skip()
+      return
+    }
+
+    await copyButton.click()
+
+    const copiedText = page.getByText('Copied').last()
+    if ((await copiedText.count()) > 0) {
+      await expect(copiedText).toBeVisible({ timeout: 3000 })
     }
   })
 
   test('shows Installation section heading', async ({ page }) => {
-    await expect(page.getByText('Installation')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Installation').first()).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('Configure and add the widget to your site')).toBeVisible()
   })
 

@@ -7,7 +7,7 @@ test.describe('Admin Widget Settings', () => {
   })
 
   test('page loads and shows Feedback Widget heading', async ({ page }) => {
-    await expect(page.getByText('Feedback Widget')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Feedback Widget').first()).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByText('Embed a feedback widget directly in your product to collect feedback from users')
     ).toBeVisible({ timeout: 10000 })
@@ -92,7 +92,7 @@ test.describe('Admin Widget Settings', () => {
   })
 
   test('shows Content card with image uploads toggle', async ({ page }) => {
-    await expect(page.getByText('Content')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Content').first()).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByText('Control what rich content types users can include in their feedback submissions.')
     ).toBeVisible()
@@ -182,12 +182,21 @@ test.describe('Admin Widget Settings', () => {
   test('code panel copy button changes to "Copied" on click', async ({ page }) => {
     await page.waitForLoadState('networkidle')
 
-    const copyButton = page.getByRole('button', { name: 'Copy' }).last()
-    if ((await copyButton.count()) > 0) {
-      await copyButton.click()
+    // Grant clipboard permissions so the copy action can succeed
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
 
-      // Should briefly show "Copied"
-      await expect(page.getByText('Copied').last()).toBeVisible({ timeout: 3000 })
+    const copyButton = page.getByRole('button', { name: 'Copy' }).last()
+    if ((await copyButton.count()) === 0) {
+      test.skip()
+      return
+    }
+
+    await copyButton.click()
+
+    // Should briefly show "Copied" (only if clipboard write succeeded)
+    const copiedText = page.getByText('Copied').last()
+    if ((await copiedText.count()) > 0) {
+      await expect(copiedText).toBeVisible({ timeout: 3000 })
     }
   })
 

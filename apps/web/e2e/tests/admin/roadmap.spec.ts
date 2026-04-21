@@ -56,13 +56,13 @@ test.describe('Admin Roadmap - Sidebar', () => {
   test('shows create roadmap button in sidebar', async ({ page }) => {
     // The + icon button lives next to the "Roadmaps" header
     // It has no accessible name but is the only button in that header area
-    const createRoadmapBtn = page.locator('aside').getByRole('button').first()
+    const createRoadmapBtn = page.locator('main aside').getByRole('button').first()
     await expect(createRoadmapBtn).toBeVisible({ timeout: 10000 })
   })
 
   test('can open create roadmap dialog', async ({ page }) => {
     // Click the + button next to the "Roadmaps" heading
-    const createBtn = page.locator('aside').getByRole('button').first()
+    const createBtn = page.locator('main aside').getByRole('button').first()
 
     if ((await createBtn.count()) > 0) {
       await createBtn.click()
@@ -86,7 +86,7 @@ test.describe('Admin Roadmap - Sidebar', () => {
   })
 
   test('can close create roadmap dialog with Escape', async ({ page }) => {
-    const createBtn = page.locator('aside').getByRole('button').first()
+    const createBtn = page.locator('main aside').getByRole('button').first()
 
     if ((await createBtn.count()) > 0) {
       await createBtn.click()
@@ -154,7 +154,7 @@ test.describe('Admin Roadmap - CRUD', () => {
   })
 
   test('can create a new roadmap', async ({ page }) => {
-    const createBtn = page.locator('aside').getByRole('button').first()
+    const createBtn = page.locator('main aside').getByRole('button').first()
 
     if ((await createBtn.count()) > 0) {
       await createBtn.click()
@@ -178,7 +178,7 @@ test.describe('Admin Roadmap - CRUD', () => {
   })
 
   test('can create a private roadmap', async ({ page }) => {
-    const createBtn = page.locator('aside').getByRole('button').first()
+    const createBtn = page.locator('main aside').getByRole('button').first()
 
     if ((await createBtn.count()) > 0) {
       await createBtn.click()
@@ -603,10 +603,16 @@ test.describe('Admin Roadmap - Cross-View Verification', () => {
     await page.waitForLoadState('networkidle')
 
     // In the detail panel, find the status selector and change it to "Planned"
-    // The status picker is typically a button/combobox showing the current status name
-    const statusPicker = page
+    // The status picker is inside the post detail modal/sheet
+    const detailModal = page.getByRole('dialog').first()
+    if ((await detailModal.count()) === 0) {
+      test.skip()
+      return
+    }
+
+    const statusPicker = detailModal
       .locator('[data-testid="status-selector"]')
-      .or(page.locator('button').filter({ hasText: /open|under review|planned|in progress|complete|closed/i }).first())
+      .or(detailModal.locator('button').filter({ hasText: /open|under review|planned|in progress|complete|closed/i }).first())
 
     if ((await statusPicker.count()) === 0) {
       test.skip()
@@ -659,8 +665,8 @@ test.describe('Admin Roadmap - Public Roadmap Column Accuracy', () => {
     const noRoadmapsMsg = page.getByText('No roadmaps available')
     if ((await noRoadmapsMsg.count()) > 0) return
 
-    // Column titles are rendered in CardTitle elements
-    const columnTitles = page.locator('[class*="CardTitle"], .card-title, h3').filter({
+    // Column titles are rendered in CardTitle elements (data-slot="card-title" in shadcn v4)
+    const columnTitles = page.locator('[data-slot="card-title"]').filter({
       hasNotText: /roadmap/i,
     })
 
@@ -790,7 +796,7 @@ test.describe('Admin Roadmap - Filters bar', () => {
         await addFilterBtn.click()
 
         // Popover should open with Board / Tag categories
-        const popover = page.locator('[data-radix-popover-content]')
+        const popover = page.locator('[data-slot="popover-content"]')
         await expect(popover).toBeVisible({ timeout: 5000 })
 
         await expect(popover.getByText('Board')).toBeVisible()

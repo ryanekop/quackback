@@ -50,7 +50,7 @@ test.describe('Public Changelog', () => {
     }
 
     // Each article contains a heading (h2) for the entry title
-    const firstTitle = entries.first().getByRole('heading')
+    const firstTitle = entries.first().getByRole('heading').first()
     await expect(firstTitle).toBeVisible()
   })
 
@@ -192,7 +192,7 @@ test.describe('Public Changelog - Detail Page', () => {
     await page.waitForLoadState('networkidle')
 
     // Content renders after the h1 — there should be some text content in the article
-    const article = page.locator('article')
+    const article = page.locator('article').first()
     await expect(article).toBeVisible({ timeout: 10000 })
     const articleText = await article.textContent()
     expect(articleText?.trim().length).toBeGreaterThan(0)
@@ -278,7 +278,7 @@ test.describe('Public Changelog - Detail Page', () => {
     await page.waitForLoadState('networkidle')
 
     await expect(
-      page.getByText(/changelog entry not found|not yet published|removed/i)
+      page.getByText(/changelog entry not found|not yet published|removed/i).first()
     ).toBeVisible({ timeout: 10000 })
   })
 })
