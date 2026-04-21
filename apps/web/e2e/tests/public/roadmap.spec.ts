@@ -248,13 +248,11 @@ test.describe('Public Roadmap', () => {
       return
     }
 
-    // RoadmapFiltersBar is always rendered once a roadmap is selected
-    // It contains at least a search field or filter controls
-    // The bar wraps board/tag filters — check for a parent container after the tab area
-    const filtersBar = page.locator('form, [class*="filters"]').first()
-    await expect(filtersBar).toBeVisible({ timeout: 5000 })
-    // This is a soft check — just verify the board section of the UI loaded
-    await page.waitForLoadState('networkidle')
+    // RoadmapFiltersBar renders a Search button + sort buttons + "Add filter" button.
+    // There is no form or [class*="filters"] element visible — the form is inside a popover.
+    // Check for the "Add filter" button which is always rendered.
+    const addFilterButton = page.getByRole('button', { name: 'Add filter' })
+    await expect(addFilterButton).toBeVisible({ timeout: 5000 })
     // Page should not show an error state
     await expect(page.locator('body')).not.toContainText(/something went wrong/i)
   })

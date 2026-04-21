@@ -21,12 +21,9 @@ test.describe('Portal Auth Dialog', () => {
   })
 
   test.afterEach(async ({ page }) => {
-    // Close any open dialog to avoid state leaking into the next serial test
-    const dialog = page.getByRole('dialog')
-    if ((await dialog.count()) > 0) {
-      await page.keyboard.press('Escape')
-      await dialog.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {})
-    }
+    // Close any open dialog to avoid state leaking into the next serial test.
+    // Navigating away fully resets the React tree (dialog state included).
+    await page.goto('about:blank').catch(() => {})
   })
 
   // ---------------------------------------------------------------------------
