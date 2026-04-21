@@ -454,6 +454,286 @@ test.describe('Admin Roadmap - Kanban columns', () => {
   })
 })
 
+test.describe('Admin Roadmap - Kanban Accuracy', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/admin/roadmap')
+    await page.waitForLoadState('networkidle')
+  })
+
+  test('card count in each column matches the header badge count', async ({ page }) => {
+    const noRoadmapMsg = page.getByText('No roadmap selected')
+    if ((await noRoadmapMsg.count()) > 0) return
+
+    // Each column is a min-w-[280px] flex child; wait for columns to render
+    const columns = page.locator('main [class*="min-w-\\[280px\\]"]')
+    await expect(columns.first()).toBeVisible({ timeout: 10000 })
+
+    const columnCount = await columns.count()
+    if (columnCount === 0) return
+
+    for (let i = 0; i < columnCount; i++) {
+      const col = columns.nth(i)
+
+      // Header badge: the lone text-xs span in the column header area
+      const badgeSpan = col.locator('.flex.items-center.justify-between span.text-xs')
+      if ((await badgeSpan.count()) === 0) continue
+
+      const badgeText = await badgeSpan.first().textContent()
+      const badgeCount = parseInt(badgeText?.trim() ?? '', 10)
+
+      // Actual cards rendered inside the column
+      const cards = col.locator('[class*="bg-card"][class*="rounded-lg"]')
+      const actualCardCount = await cards.count()
+
+      // The badge total may exceed visible cards when pagination is active (infinite scroll
+      // hasn't loaded all pages), so we assert actualCardCount <= badgeCount and
+      // that badgeCount is itself a valid non-NaN integer.
+      expect(Number.isNaN(badgeCount)).toBe(false)
+      expect(actualCardCount).toBeLessThanOrEqual(badgeCount)
+
+      // When the badge shows 0, no cards should be rendered either
+      if (badgeCount === 0) {
+        expect(actualCardCount).toBe(0)
+      }
+    }
+  })
+
+  test('each card in a column shows a non-empty board name', async ({ page }) => {
+    const noRoadmapMsg = page.getByText('No roadmap selected')
+    if ((await noRoadmapMsg.count()) > 0) return
+
+    const cards = page.locator('main [class*="bg-card"][class*="rounded-lg"]')
+    await page.waitForLoadState('networkidle')
+
+    const cardCount = await cards.count()
+    if (cardCount === 0) return
+
+    // Check up to the first 10 cards to keep test fast
+    const limit = Math.min(cardCount, 10)
+    for (let i = 0; i < limit; i++) {
+      const card = cards.nth(i)
+      // Board badge is a shadcn Badge (secondary variant) rendered after the title p
+      const boardBadge = card.locator('[class*="inline-flex"][class*="items-center"]').last()
+      const boardText = await boardBadge.textContent()
+      expect(boardText?.trim().length).toBeGreaterThan(0)
+    }
+  })
+
+  test('each card shows a numeric vote count', async ({ page }) => {
+    const noRoadmapMsg = page.getByText('No roadmap selected')
+    if ((await noRoadmapMsg.count()) > 0) return
+
+    const cards = page.locator('main [class*="bg-card"][class*="rounded-lg"]')
+    await page.waitForLoadState('networkidle')
+
+    const cardCount = await cards.count()
+    if (cardCount === 0) return
+
+    const limit = Math.min(cardCount, 10)
+    for (let i = 0; i < limit; i++) {
+      const card = cards.nth(i)
+      // Vote count: text-sm font-semibold span inside the left vote column
+      const voteSpan = card.locator('span.text-sm.font-semibold')
+      const voteText = await voteSpan.first().textContent()
+      const parsed = parseInt(voteText?.trim() ?? '', 10)
+      expect(Number.isNaN(parsed)).toBe(false)
+    }
+  })
+
+  test('clicking a card opens detail modal with matching title', async ({ page }) => {
+    const noRoadmapMsg = page.getByText('No roadmap selected')
+    if ((await noRoadmapMsg.count()) > 0) return
+
+    const cards = page.locator('main [class*="bg-card"][class*="rounded-lg"]')
+    await page.waitForLoadState('networkidle')
+
+    if ((await cards.count()) === 0) return
+
+    const firstCard = cards.first()
+
+    // Read the title text from the card before clicking
+    const titleEl = firstCard.locator('p.text-sm.font-medium')
+    const cardTitle = (await titleEl.textContent())?.trim() ?? ''
+    expect(cardTitle.length).toBeGreaterThan(0)
+
+    await firstCard.click()
+
+    // URL gains ?post= param
+    await expect(page).toHaveURL(/[?&]post=/, { timeout: 5000 })
+
+    // Modal opens
+    const modal = page.getByRole('dialog')
+    await expect(modal).toBeVisible({ timeout: 10000 })
+
+    // Modal heading should contain the same title text
+    const modalHeading = modal.locator('h1, h2, h3').filter({ hasText: cardTitle }).first()
+    await expect(modalHeading).toBeVisible({ timeout: 5000 })
+
+    // Close modal
+    await page.keyboard.press('Escape')
+    await expect(modal).toBeHidden({ timeout: 5000 })
+  })
+})
+
+test.describe('Admin Roadmap - Cross-View Verification', () => {
+  test('a post with a roadmap-visible status appears on the public roadmap', async ({ page }) => {
+    // Roadmap-visible statuses from seed: Planned, In Progress, Complete.
+    // Navigate to admin feedback to find a post and verify it shows on /roadmap.
+
+    await page.goto('/admin/feedback')
+    await page.waitForLoadState('networkidle')
+
+    // Find the first post card in the list
+    const postCards = page.locator('[class*="cursor-pointer"]').filter({
+      has: page.locator('h3'),
+    })
+
+    if ((await postCards.count()) === 0) {
+      test.skip()
+      return
+    }
+
+    // Click the first post to open the detail panel
+    const firstCard = postCards.first()
+    const cardHeading = firstCard.locator('h3').first()
+    const postTitle = (await cardHeading.textContent())?.trim() ?? ''
+    expect(postTitle.length).toBeGreaterThan(0)
+
+    await firstCard.click()
+    await page.waitForLoadState('networkidle')
+
+    // In the detail panel, find the status selector and change it to "Planned"
+    // The status picker is typically a button/combobox showing the current status name
+    const statusPicker = page
+      .locator('[data-testid="status-selector"]')
+      .or(page.locator('button').filter({ hasText: /open|under review|planned|in progress|complete|closed/i }).first())
+
+    if ((await statusPicker.count()) === 0) {
+      test.skip()
+      return
+    }
+
+    await statusPicker.first().click()
+
+    // Select "Planned" (showOnRoadmap = true in seed defaults)
+    const plannedOption = page.getByRole('option', { name: /^planned$/i })
+      .or(page.locator('[role="menuitem"]').filter({ hasText: /^planned$/i }))
+      .or(page.getByText(/^planned$/i).first())
+
+    if ((await plannedOption.count()) === 0) {
+      // No roadmap-visible statuses visible in the picker; skip gracefully
+      await page.keyboard.press('Escape')
+      test.skip()
+      return
+    }
+
+    await plannedOption.first().click()
+    await page.waitForLoadState('networkidle')
+
+    // Navigate to the public roadmap
+    await page.goto('/roadmap')
+    await page.waitForLoadState('networkidle')
+
+    // Confirm no "no roadmaps" empty state (seed always has roadmaps)
+    const noRoadmapsMsg = page.getByText('No roadmaps available')
+    if ((await noRoadmapsMsg.count()) > 0) {
+      test.skip()
+      return
+    }
+
+    // The post title should appear somewhere on the public roadmap board
+    const matchingCard = page.locator('.roadmap-card').filter({ hasText: postTitle })
+    await expect(matchingCard.first()).toBeVisible({ timeout: 15000 })
+  })
+})
+
+test.describe('Admin Roadmap - Public Roadmap Column Accuracy', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/roadmap')
+    await page.waitForLoadState('networkidle')
+  })
+
+  test('column headers show expected roadmap-visible status names', async ({ page }) => {
+    // Public roadmap only shows statuses with showOnRoadmap=true.
+    // Default seed statuses: Planned, In Progress, Complete.
+    const noRoadmapsMsg = page.getByText('No roadmaps available')
+    if ((await noRoadmapsMsg.count()) > 0) return
+
+    // Column titles are rendered in CardTitle elements
+    const columnTitles = page.locator('[class*="CardTitle"], .card-title, h3').filter({
+      hasNotText: /roadmap/i,
+    })
+
+    // Wait for at least one column to render
+    await expect(columnTitles.first()).toBeVisible({ timeout: 10000 })
+
+    const titleCount = await columnTitles.count()
+    expect(titleCount).toBeGreaterThan(0)
+
+    for (let i = 0; i < titleCount; i++) {
+      const titleText = (await columnTitles.nth(i).textContent())?.trim() ?? ''
+      // Each title must be non-empty
+      expect(titleText.length).toBeGreaterThan(0)
+    }
+  })
+
+  test('card count in each public column matches the column header badge', async ({ page }) => {
+    const noRoadmapsMsg = page.getByText('No roadmaps available')
+    if ((await noRoadmapsMsg.count()) > 0) return
+
+    // Public columns are shadcn Cards with min-w-[300px]
+    const columns = page.locator('[class*="min-w-\\[300px\\]"]')
+    await expect(columns.first()).toBeVisible({ timeout: 10000 })
+
+    const columnCount = await columns.count()
+    if (columnCount === 0) return
+
+    for (let i = 0; i < columnCount; i++) {
+      const col = columns.nth(i)
+
+      // Badge is a shadcn Badge (secondary) in the CardHeader next to the title
+      const badge = col.locator('[class*="badge"]').first()
+      if ((await badge.count()) === 0) continue
+
+      const badgeText = (await badge.textContent())?.trim() ?? ''
+      const badgeCount = parseInt(badgeText, 10)
+      expect(Number.isNaN(badgeCount)).toBe(false)
+
+      // Count actual rendered cards in this column
+      const cards = col.locator('.roadmap-card')
+      const actualCount = await cards.count()
+
+      // actualCount can be less than badgeCount when infinite scroll hasn't fired yet,
+      // but must never exceed it.
+      expect(actualCount).toBeLessThanOrEqual(badgeCount)
+      if (badgeCount === 0) {
+        expect(actualCount).toBe(0)
+      }
+    }
+  })
+
+  test('vote counts on public roadmap cards are numeric', async ({ page }) => {
+    const noRoadmapsMsg = page.getByText('No roadmaps available')
+    if ((await noRoadmapsMsg.count()) > 0) return
+
+    const cards = page.locator('.roadmap-card')
+    await page.waitForLoadState('networkidle')
+
+    const cardCount = await cards.count()
+    if (cardCount === 0) return
+
+    const limit = Math.min(cardCount, 10)
+    for (let i = 0; i < limit; i++) {
+      const card = cards.nth(i)
+      // Vote count: text-sm font-semibold span inside .roadmap-card__vote
+      const voteSpan = card.locator('.roadmap-card__vote span.text-sm.font-semibold')
+      const voteText = (await voteSpan.first().textContent())?.trim() ?? ''
+      const parsed = parseInt(voteText, 10)
+      expect(Number.isNaN(parsed)).toBe(false)
+    }
+  })
+})
+
 test.describe('Admin Roadmap - Filters bar', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin/roadmap')
