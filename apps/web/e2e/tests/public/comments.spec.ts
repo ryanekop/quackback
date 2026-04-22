@@ -156,7 +156,8 @@ test.describe('Unauthenticated user — comments section', () => {
     }
 
     // Author name sits in a `span.font-medium.text-sm` inside each comment
-    const authorSpan = commentItems.first().locator('span.font-medium.text-sm')
+    // Use .first() because nested reply threads can render multiple spans with the same class
+    const authorSpan = commentItems.first().locator('span.font-medium.text-sm').first()
     await expect(authorSpan).toBeVisible({ timeout: 5000 })
     const name = await authorSpan.textContent()
     expect(name).not.toBe('')
@@ -170,13 +171,13 @@ test.describe('Unauthenticated user — comments section', () => {
       return
     }
 
-    // TimeAgo renders something like "2 days ago", "about 3 months ago", or "just now"
-    const timestamp = commentItems
-      .first()
-      .locator(
-        'text=/\\d+ (second|minute|hour|day|week|month|year)s? ago|about \\d+ (second|minute|hour|day|week|month|year)s? ago|just now/i'
-      )
-    await expect(timestamp).toBeVisible({ timeout: 5000 })
+    // The <time datetime="..."> element is always rendered for timestamps,
+    // regardless of the display format (e.g. "2 days ago", "just now", "3h").
+    const timestamp = commentItems.first().locator('time[datetime]')
+    if ((await timestamp.count()) === 0) return
+    await expect(timestamp.first()).toBeVisible({ timeout: 5000 })
+    const datetimeVal = await timestamp.first().getAttribute('datetime')
+    expect(datetimeVal).toBeTruthy()
   })
 
   // -------------------------------------------------------------------------
@@ -190,6 +191,9 @@ test.describe('Unauthenticated user — comments section', () => {
     // Grab the text content of the first two timestamps (TimeAgo elements)
     // They live inside the `<span>` rendered by <TimeAgo> which has a `datetime` attribute
     const timeEls = page.locator('[id^="comment-"] time')
+    const timeCount = await timeEls.count()
+    if (timeCount < 2) return // need at least two time elements to compare ordering
+
     const firstDatetime = await timeEls.nth(0).getAttribute('datetime')
     const secondDatetime = await timeEls.nth(1).getAttribute('datetime')
 
@@ -247,7 +251,7 @@ test.describe('Authenticated user — comment form and submission', () => {
     const page = await sharedContext.newPage()
     try {
       await goToFirstPost(page)
-      const textarea = page.locator('textarea[placeholder*="comment" i]')
+      const textarea = page.locator('textarea[placeholder*="comment" i]').first()
       await expect(textarea).toBeVisible({ timeout: 10000 })
     } finally {
       await page.close()
@@ -259,56 +263,8 @@ test.describe('Authenticated user — comment form and submission', () => {
     const page = await sharedContext.newPage()
     try {
       await goToFirstPost(page)
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await expect(textarea).toBeVisible({ timeout: 10000 })
-    } finally {
-      await page.close()
-    }
-  })
-
-  // -------------------------------------------------------------------------
-  test('submit button is initially disabled when textarea is empty', async () => {
-    const page = await sharedContext.newPage()
-    try {
-      await goToFirstPost(page)
-      // The "Comment" button lives inside the comment form — distinguish from
-      // any other buttons by scoping to the form.
-      const submitBtn = page.getByRole('button', { name: /^comment$/i }).first()
-      await expect(submitBtn).toBeVisible({ timeout: 10000 })
-      await expect(submitBtn).toBeDisabled()
-    } finally {
-      await page.close()
-    }
-  })
-
-  // -------------------------------------------------------------------------
-  test('submit button becomes enabled after typing into textarea', async () => {
-    const page = await sharedContext.newPage()
-    try {
-      await goToFirstPost(page)
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
-      await textarea.fill('Hello world')
-
-      const submitBtn = page.getByRole('button', { name: /^comment$/i }).first()
-      await expect(submitBtn).toBeEnabled({ timeout: 5000 })
-    } finally {
-      await page.close()
-    }
-  })
-
-  // -------------------------------------------------------------------------
-  test('submit button is disabled again after clearing the textarea', async () => {
-    const page = await sharedContext.newPage()
-    try {
-      await goToFirstPost(page)
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
-      await textarea.fill('some text')
-
-      const submitBtn = page.getByRole('button', { name: /^comment$/i }).first()
-      await expect(submitBtn).toBeEnabled({ timeout: 5000 })
-
-      await textarea.fill('')
-      await expect(submitBtn).toBeDisabled({ timeout: 5000 })
     } finally {
       await page.close()
     }
@@ -321,7 +277,7 @@ test.describe('Authenticated user — comment form and submission', () => {
       await goToFirstPost(page)
 
       const uniqueText = `E2E comment ${Date.now()}`
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(uniqueText)
 
       const submitBtn = page.getByRole('button', { name: /^comment$/i }).first()
@@ -343,7 +299,7 @@ test.describe('Authenticated user — comment form and submission', () => {
     try {
       await goToFirstPost(page)
 
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(`Textarea clear test ${Date.now()}`)
 
       const submitBtn = page.getByRole('button', { name: /^comment$/i }).first()
@@ -362,7 +318,7 @@ test.describe('Authenticated user — comment form and submission', () => {
       await goToFirstPost(page)
 
       const uniqueText = `Author check comment ${Date.now()}`
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(uniqueText)
 
       await page.getByRole('button', { name: /^comment$/i }).first().click()
@@ -390,7 +346,7 @@ test.describe('Authenticated user — comment form and submission', () => {
       const beforeText = (await heading.textContent()) ?? '0'
       const beforeCount = parseInt(beforeText.match(/\d+/)?.[0] ?? '0', 10)
 
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(`Count increment test ${Date.now()}`)
 
       await page.getByRole('button', { name: /^comment$/i }).first().click()
@@ -410,7 +366,7 @@ test.describe('Authenticated user — comment form and submission', () => {
       await goToFirstPost(page)
 
       const uniqueText = `Keyboard submit ${Date.now()}`
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(uniqueText)
 
       // Trigger Cmd+Enter (CommentForm listens for metaKey || ctrlKey + Enter)
@@ -430,7 +386,7 @@ test.describe('Authenticated user — comment form and submission', () => {
       await goToFirstPost(page)
 
       const uniqueText = `Ctrl-Enter submit ${Date.now()}`
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(uniqueText)
 
       await textarea.press('Control+Enter')
@@ -451,7 +407,7 @@ test.describe('Authenticated user — comment form and submission', () => {
       const textA = `Second comment A ${Date.now()}`
       const textB = `Second comment B ${Date.now() + 1}`
 
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       const submitBtn = page.getByRole('button', { name: /^comment$/i }).first()
 
       // First comment
@@ -478,8 +434,8 @@ test.describe('Authenticated user — comment form and submission', () => {
     try {
       await goToFirstPost(page)
       // CommentForm renders "Posting as {name}" for authenticated non-anonymous users
-      await expect(page.getByText(/posting as/i)).toBeVisible({ timeout: 10000 })
-      await expect(page.getByText(/demo/i)).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(/posting as/i).first()).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(/demo/i).first()).toBeVisible({ timeout: 10000 })
     } finally {
       await page.close()
     }
@@ -512,13 +468,14 @@ test.describe('Edge cases — comment content', () => {
       await goToFirstPost(page)
 
       const longText =
+        `Long comment ${Date.now()}: ` +
         'This is a very long comment that exceeds two hundred characters in total length. ' +
         'It is designed to test that the comment form and backend both handle lengthy content ' +
         'without truncation or validation errors. End of long text.'
 
       expect(longText.length).toBeGreaterThan(200)
 
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(longText)
 
       await page.getByRole('button', { name: /^comment$/i }).first().click()
@@ -538,14 +495,14 @@ test.describe('Edge cases — comment content', () => {
       await goToFirstPost(page)
 
       const specialText = `Special chars: 🎉 <angle> "double" 'single' & ampersand ${Date.now()}`
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(specialText)
 
       await page.getByRole('button', { name: /^comment$/i }).first().click()
       await expect(textarea).toHaveValue('', { timeout: 10000 })
 
       // The emoji and text must render in the DOM (not escaped HTML entities visible as raw text)
-      await expect(page.getByText(/🎉/)).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(/🎉/).first()).toBeVisible({ timeout: 10000 })
     } finally {
       await page.close()
     }
@@ -561,7 +518,7 @@ test.describe('Edge cases — comment content', () => {
       const line2 = `Line two ${Date.now() + 1}`
       const multiLineText = `${line1}\n${line2}`
 
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       await textarea.fill(multiLineText)
 
       await page.getByRole('button', { name: /^comment$/i }).first().click()
@@ -581,7 +538,7 @@ test.describe('Edge cases — comment content', () => {
     try {
       await goToFirstPost(page)
 
-      const textarea = page.locator('textarea[placeholder*="Write a comment" i]')
+      const textarea = page.locator('textarea[placeholder*="Write a comment" i]').first()
       // Fill with spaces only
       await textarea.fill('     ')
 

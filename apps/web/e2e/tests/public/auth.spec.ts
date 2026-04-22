@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { closeDialog } from '../../utils/helpers'
 
 /**
  * Public portal auth tests — no prior authentication.
@@ -21,9 +22,10 @@ test.describe('Portal Auth Dialog', () => {
   })
 
   test.afterEach(async ({ page }) => {
-    // Close any open dialog to avoid state leaking into the next serial test.
-    // Navigating away fully resets the React tree (dialog state included).
-    await page.goto('about:blank').catch(() => {})
+    // Close any open dialog so state doesn't bleed into the next serial test.
+    if ((await page.getByRole('dialog').count()) > 0) {
+      await closeDialog(page).catch(() => {})
+    }
   })
 
   // ---------------------------------------------------------------------------
@@ -139,9 +141,12 @@ test.describe('Portal Auth Dialog', () => {
       await useEmailCodeLink.click()
     }
 
-    // Skip if the email OTP step is not available (email OTP may be disabled)
-    const continueWithEmailBtn = page.getByRole('button', { name: /continue with email/i })
-    if ((await continueWithEmailBtn.count()) === 0) {
+    // Skip if the email OTP step is not available (email OTP may be disabled).
+    // Wait briefly for the transition after clicking "use email code instead".
+    const continueWithEmailBtn = page.getByRole('dialog').getByRole('button', { name: /continue with email/i })
+    try {
+      await expect(continueWithEmailBtn).toBeVisible({ timeout: 2000 })
+    } catch {
       test.skip()
       return
     }
@@ -323,9 +328,12 @@ test.describe('Portal Auth Dialog', () => {
       await useEmailCodeLink.click()
     }
 
-    // Skip if the email OTP step is not available (email OTP may be disabled)
-    const continueWithEmailBtn = page.getByRole('button', { name: /continue with email/i })
-    if ((await continueWithEmailBtn.count()) === 0) {
+    // Skip if the email OTP step is not available (email OTP may be disabled).
+    // Wait briefly for the transition after clicking "use email code instead".
+    const continueWithEmailBtn = page.getByRole('dialog').getByRole('button', { name: /continue with email/i })
+    try {
+      await expect(continueWithEmailBtn).toBeVisible({ timeout: 2000 })
+    } catch {
       test.skip()
       return
     }
