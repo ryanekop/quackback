@@ -93,27 +93,6 @@ test.describe('Post detail page', () => {
     expect(countText?.trim()).toMatch(/^\d+$/)
   })
 
-  test('anonymous user can vote without signing in', async () => {
-    // Anonymous voting on the detail page requires creating an anon session, which
-    // involves a server round-trip before the vote fires. The voting.spec.ts suite
-    // covers this flow with proper auth setup. Skip here to avoid a flaky race.
-    test.skip(true, 'Anonymous session creation race on detail page; covered by voting.spec.ts')
-  })
-
-  test('vote count increments after voting', async () => {
-    // Anonymous voting on the detail page requires creating an anon session, which
-    // involves a server round-trip before the vote fires. The voting.spec.ts suite
-    // covers this flow with proper auth setup. Skip here to avoid a flaky race.
-    test.skip(true, 'Anonymous session creation race on detail page; covered by voting.spec.ts')
-  })
-
-  test('clicking vote again removes the vote (toggle)', async () => {
-    // Anonymous voting on the detail page requires creating an anon session, which
-    // involves a server round-trip before the vote fires. The voting.spec.ts suite
-    // covers this flow with proper auth setup. Skip here to avoid a flaky race.
-    test.skip(true, 'Anonymous session creation race on detail page; covered by voting.spec.ts')
-  })
-
   // ---- Comments section ----
 
   test('shows comments section header', async ({ page }) => {
