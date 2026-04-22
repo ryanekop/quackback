@@ -12,6 +12,42 @@ function extractKey(url: URL): string | null {
   return key && !key.includes('..') ? key : null
 }
 
+export async function handleProxyUpload({ request }: { request: Request }): Promise<Response> {
+  const { isS3Configured, getS3Config, uploadObject, verifyProxyUploadToken, MAX_FILE_SIZE } =
+    await import('@/lib/server/storage/s3')
+  const { config } = await import('@/lib/server/config')
+
+  if (!isS3Configured() || !config.s3Proxy) {
+    return Response.json({ error: 'Proxy uploads not enabled' }, { status: 403 })
+  }
+
+  const contentLength = Number(request.headers.get('content-length') ?? 0)
+  if (contentLength > MAX_FILE_SIZE) {
+    return Response.json({ error: 'File too large' }, { status: 413 })
+  }
+
+  const url = new URL(request.url)
+  const key = extractKey(url)
+  if (!key) return Response.json({ error: 'Invalid storage key' }, { status: 400 })
+
+  const ct = url.searchParams.get('ct') ?? ''
+  const exp = url.searchParams.get('exp')
+  const sig = url.searchParams.get('sig')
+  const { secretAccessKey } = getS3Config()
+
+  if (!verifyProxyUploadToken(secretAccessKey, key, ct, exp, sig)) {
+    return Response.json({ error: 'Invalid or expired upload token' }, { status: 401 })
+  }
+
+  const body = await request.arrayBuffer()
+  if (body.byteLength > MAX_FILE_SIZE) {
+    return Response.json({ error: 'File too large' }, { status: 413 })
+  }
+
+  await uploadObject(key, Buffer.from(body), ct)
+  return new Response(null, { status: 200 })
+}
+
 export const Route = createFileRoute('/api/storage/$')({
   server: {
     handlers: {
@@ -24,41 +60,7 @@ export const Route = createFileRoute('/api/storage/$')({
        * reach the storage endpoint directly. The request must carry a valid
        * HMAC-signed token issued by generatePresignedUploadUrl.
        */
-      PUT: async ({ request }) => {
-        const { isS3Configured, getS3Config, uploadObject, verifyProxyUploadToken, MAX_FILE_SIZE } =
-          await import('@/lib/server/storage/s3')
-        const { config } = await import('@/lib/server/config')
-
-        if (!isS3Configured() || !config.s3Proxy) {
-          return Response.json({ error: 'Proxy uploads not enabled' }, { status: 403 })
-        }
-
-        const contentLength = Number(request.headers.get('content-length') ?? 0)
-        if (contentLength > MAX_FILE_SIZE) {
-          return Response.json({ error: 'File too large' }, { status: 413 })
-        }
-
-        const url = new URL(request.url)
-        const key = extractKey(url)
-        if (!key) return Response.json({ error: 'Invalid storage key' }, { status: 400 })
-
-        const ct = url.searchParams.get('ct') ?? ''
-        const exp = url.searchParams.get('exp')
-        const sig = url.searchParams.get('sig')
-        const { secretAccessKey } = getS3Config()
-
-        if (!verifyProxyUploadToken(secretAccessKey, key, ct, exp, sig)) {
-          return Response.json({ error: 'Invalid or expired upload token' }, { status: 401 })
-        }
-
-        const body = await request.arrayBuffer()
-        if (body.byteLength > MAX_FILE_SIZE) {
-          return Response.json({ error: 'File too large' }, { status: 413 })
-        }
-
-        await uploadObject(key, Buffer.from(body), ct)
-        return new Response(null, { status: 200 })
-      },
+      PUT: handleProxyUpload,
 
       /**
        * GET /api/storage/*
