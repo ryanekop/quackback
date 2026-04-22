@@ -245,6 +245,7 @@ export async function generatePresignedUploadUrl(
 // ============================================================================
 
 function proxyUploadSig(secret: string, key: string, contentType: string, exp: number): string {
+  // 32 hex chars = 128-bit token; sufficient for short-lived upload auth
   return createHmac('sha256', secret)
     .update(`${key}|${contentType}|${exp}`)
     .digest('hex')
@@ -257,6 +258,7 @@ function buildProxyUploadUrl(
   contentType: string,
   expiresIn: number
 ): string {
+  if (!config.baseUrl) throw new Error('BASE_URL must be set to use S3_PROXY upload')
   const exp = Date.now() + expiresIn * 1000
   const sig = proxyUploadSig(secret, key, contentType, exp)
   const base = config.baseUrl.replace(/\/$/, '')
