@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createHmac } from 'node:crypto'
 
 vi.mock('@/lib/server/config', () => ({ config: {} }))
