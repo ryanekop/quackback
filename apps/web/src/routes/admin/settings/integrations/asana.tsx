@@ -9,7 +9,7 @@ import { AsanaConnectionActions } from '@/components/admin/settings/integrations
 import { AsanaConfig } from '@/components/admin/settings/integrations/asana/asana-config'
 import { Button } from '@/components/ui/button'
 import { AsanaIcon } from '@/components/icons/integration-icons'
-import { asanaCatalog } from '@/lib/server/integrations/asana/catalog'
+import { asanaCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/asana')({
   loader: async ({ context }) => {

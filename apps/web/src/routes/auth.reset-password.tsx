@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/shared/form-error'
 import { ArrowPathIcon, CheckCircleIcon } from '@heroicons/react/24/solid'
-import { authClient } from '@/lib/server/auth/client'
+import { authClient } from '@/lib/client/auth-client'
 
 export const Route = createFileRoute('/auth/reset-password')({
   validateSearch: (search: Record<string, unknown>) => ({

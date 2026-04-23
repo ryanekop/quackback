@@ -11,7 +11,7 @@ import type {
   PortalUserListResultView,
   PortalUserListItemView,
   PortalUserDetail,
-} from '@/lib/server/domains/users'
+} from '@/lib/shared/types'
 import type { PrincipalId } from '@quackback/ids'
 import { listPortalUsersFn, getPortalUserFn } from '@/lib/server/functions/admin'
 

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AuthProviderCredentialsForm } from './auth-provider-credentials-form'
-import type { PlatformCredentialField } from '@/lib/server/integrations/types'
+import type { PlatformCredentialField } from '@/lib/shared/integration-types'
 
 interface AuthProviderCredentialsDialogProps {
   credentialType: string

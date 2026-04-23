@@ -9,7 +9,7 @@ import { SlackConnectionActions } from '@/components/admin/settings/integrations
 import { SlackConfig } from '@/components/admin/settings/integrations/slack/slack-config'
 import { Button } from '@/components/ui/button'
 import { SlackIcon } from '@/components/icons/integration-icons'
-import { slackCatalog } from '@/lib/server/integrations/slack/catalog'
+import { slackCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/slack')({
   loader: async ({ context }) => {

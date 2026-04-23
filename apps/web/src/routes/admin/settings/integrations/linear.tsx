@@ -9,7 +9,7 @@ import { LinearConnectionActions } from '@/components/admin/settings/integration
 import { LinearConfig } from '@/components/admin/settings/integrations/linear/linear-config'
 import { Button } from '@/components/ui/button'
 import { LinearIcon } from '@/components/icons/integration-icons'
-import { linearCatalog } from '@/lib/server/integrations/linear/catalog'
+import { linearCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/linear')({
   loader: async ({ context }) => {

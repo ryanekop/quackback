@@ -3,7 +3,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { ArrowPathIcon } from '@heroicons/react/24/solid'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { authClient } from '@/lib/server/auth/client'
+import { authClient } from '@/lib/client/auth-client'
 import { checkOnboardingState } from '@/lib/server/functions/admin'
 
 export const Route = createFileRoute('/onboarding/_layout/account')({

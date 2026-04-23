@@ -8,7 +8,7 @@ import {
   type IntegrationCatalogEntry,
   type IntegrationCategory,
   type PlatformCredentialField,
-} from '@/lib/server/integrations/types'
+} from '@/lib/shared/integration-types'
 import { cn } from '@/lib/shared/utils'
 
 const PlatformCredentialsDialog = lazy(() =>

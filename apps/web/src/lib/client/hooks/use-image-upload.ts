@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { getWidgetAuthHeaders } from '@/lib/client/widget-auth'
-import { MAX_FILE_SIZE, isAllowedImageType } from '@/lib/server/storage/s3'
+import { MAX_FILE_SIZE, isAllowedImageType } from '@/lib/shared/storage-config'
 
 interface UseImageUploadOptions {
   prefix?: string

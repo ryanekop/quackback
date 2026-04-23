@@ -1,6 +1,5 @@
 import { createFileRoute, notFound, Outlet } from '@tanstack/react-router'
-import type { FeatureFlags } from '@/lib/server/domains/settings/settings.types'
-import type { HelpCenterConfig } from '@/lib/server/domains/settings'
+import type { FeatureFlags, HelpCenterConfig } from '@/lib/shared/types/settings'
 
 export const Route = createFileRoute('/_portal/hc')({
   beforeLoad: ({ context }) => {

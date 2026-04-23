@@ -29,7 +29,7 @@ import {
   collectDescendantIdsIncludingSelf,
   getCategoryDepth,
   getSubtreeMaxDepth,
-} from '@/lib/server/domains/help-center/category-tree'
+} from '@/lib/shared/help-center-tree'
 import type { HelpCenterCategoryId } from '@quackback/ids'
 
 const DEFAULT_ICON = 'FolderIcon'

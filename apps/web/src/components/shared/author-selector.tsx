@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge'
 import { cn, getInitials } from '@/lib/shared/utils'
 import { adminQueries } from '@/lib/client/queries/admin'
-import type { TeamMember } from '@/lib/server/domains/principals'
+import type { TeamMember } from '@/lib/shared/types'
 
 /** Extract a user-friendly message from server errors (Zod validation returns raw JSON) */
 function parseErrorMessage(err: unknown, fallback: string): string {

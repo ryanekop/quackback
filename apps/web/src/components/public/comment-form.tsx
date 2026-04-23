@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CheckIcon, LockClosedIcon } from '@heroicons/react/24/solid'
-import { signOut } from '@/lib/server/auth/client'
+import { signOut } from '@/lib/client/auth-client'
 import { useRouter, useRouteContext } from '@tanstack/react-router'
 import { useAuthBroadcast } from '@/lib/client/hooks/use-auth-broadcast'
 import { cn } from '@/lib/shared/utils'

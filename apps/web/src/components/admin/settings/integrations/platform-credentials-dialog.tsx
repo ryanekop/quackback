@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlatformCredentialsForm } from './platform-credentials-form'
-import type { PlatformCredentialField } from '@/lib/server/integrations/types'
+import type { PlatformCredentialField } from '@/lib/shared/integration-types'
 
 interface PlatformCredentialsDialogProps {
   integrationType: string

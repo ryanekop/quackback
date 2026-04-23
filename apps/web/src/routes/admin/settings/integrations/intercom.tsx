@@ -8,7 +8,7 @@ import { PlatformCredentialsDialog } from '@/components/admin/settings/integrati
 import { IntercomConnectionActions } from '@/components/admin/settings/integrations/intercom/intercom-connection-actions'
 import { Button } from '@/components/ui/button'
 import { IntercomIcon } from '@/components/icons/integration-icons'
-import { intercomCatalog } from '@/lib/server/integrations/intercom/catalog'
+import { intercomCatalog } from '@/lib/shared/integration-catalog'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
 
 export const Route = createFileRoute('/admin/settings/integrations/intercom')({

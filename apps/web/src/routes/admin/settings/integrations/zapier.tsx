@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { ZapierConnectionActions } from '@/components/admin/settings/integrations/zapier/zapier-connection-actions'
 import { ZapierConfig } from '@/components/admin/settings/integrations/zapier/zapier-config'
 import { ZapierIcon } from '@/components/icons/integration-icons'
-import { zapierCatalog } from '@/lib/server/integrations/zapier/catalog'
+import { zapierCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/zapier')({
   loader: async ({ context }) => {

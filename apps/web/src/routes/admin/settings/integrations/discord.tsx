@@ -9,7 +9,7 @@ import { DiscordConnectionActions } from '@/components/admin/settings/integratio
 import { DiscordConfig } from '@/components/admin/settings/integrations/discord/discord-config'
 import { Button } from '@/components/ui/button'
 import { DiscordIcon } from '@/components/icons/integration-icons'
-import { discordCatalog } from '@/lib/server/integrations/discord/catalog'
+import { discordCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/discord')({
   loader: async ({ context }) => {

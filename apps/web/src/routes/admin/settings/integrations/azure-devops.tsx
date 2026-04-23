@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { AzureDevOpsConnectionActions } from '@/components/admin/settings/integrations/azure-devops/azure-devops-connection-actions'
 import { AzureDevOpsConfig } from '@/components/admin/settings/integrations/azure-devops/azure-devops-config'
 import { AzureDevOpsIcon } from '@/components/icons/integration-icons'
-import { azureDevOpsCatalog } from '@/lib/server/integrations/azure-devops/catalog'
+import { azureDevOpsCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/azure-devops')({
   loader: async ({ context }) => {

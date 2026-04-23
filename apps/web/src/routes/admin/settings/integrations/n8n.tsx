@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { N8nConnectionActions } from '@/components/admin/settings/integrations/n8n/n8n-connection-actions'
 import { N8nConfig } from '@/components/admin/settings/integrations/n8n/n8n-config'
 import { N8nIcon } from '@/components/icons/integration-icons'
-import { n8nCatalog } from '@/lib/server/integrations/n8n/catalog'
+import { n8nCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/n8n')({
   loader: async ({ context }) => {

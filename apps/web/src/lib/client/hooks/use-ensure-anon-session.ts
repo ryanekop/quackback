@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { useRouter, useRouteContext } from '@tanstack/react-router'
-import { authClient } from '@/lib/server/auth/client'
+import { authClient } from '@/lib/client/auth-client'
 
 export function useEnsureAnonSession(): () => Promise<boolean> {
   const router = useRouter()

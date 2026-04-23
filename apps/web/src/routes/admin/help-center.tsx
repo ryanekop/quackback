@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate, Outlet } from '@tanstack/react-router'
 import { z } from 'zod'
-import type { FeatureFlags } from '@/lib/server/domains/settings/settings.types'
+import type { FeatureFlags } from '@/lib/shared/types/settings'
 
 const searchSchema = z.object({
   status: z.enum(['draft', 'published']).optional(),

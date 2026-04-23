@@ -5,7 +5,7 @@ import {
   listPublicCategoriesFn,
   listPublicCategoryEditorsFn,
 } from '@/lib/server/functions/help-center'
-import type { HelpCenterConfig } from '@/lib/server/domains/settings'
+import type { HelpCenterConfig } from '@/lib/shared/types/settings'
 
 export const Route = createFileRoute('/_portal/hc/')({
   loader: async ({ context }) => {

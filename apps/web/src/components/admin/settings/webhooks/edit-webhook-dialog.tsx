@@ -20,12 +20,9 @@ import { updateWebhookFn } from '@/lib/server/functions/webhooks'
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
 import { CopyButton } from '@/components/shared/copy-button'
 import { WarningBox } from '@/components/shared/warning-box'
-import {
-  WEBHOOK_EVENTS,
-  WEBHOOK_EVENT_CONFIG,
-} from '@/lib/server/events/integrations/webhook/constants'
+import { WEBHOOK_EVENTS, WEBHOOK_EVENT_CONFIG } from '@/lib/shared/webhook-events'
 import { RotateWebhookSecretDialog } from './rotate-webhook-secret-dialog'
-import type { Webhook } from '@/lib/server/domains/webhooks'
+import type { Webhook } from '@/lib/shared/types'
 
 interface EditWebhookDialogProps {
   webhook: Webhook

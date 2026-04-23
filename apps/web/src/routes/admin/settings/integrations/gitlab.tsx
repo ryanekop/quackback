@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { GitLabConnectionActions } from '@/components/admin/settings/integrations/gitlab/gitlab-connection-actions'
 import { GitLabConfig } from '@/components/admin/settings/integrations/gitlab/gitlab-config'
 import { GitLabIcon } from '@/components/icons/integration-icons'
-import { gitlabCatalog } from '@/lib/server/integrations/gitlab/catalog'
+import { gitlabCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/gitlab')({
   loader: async ({ context }) => {

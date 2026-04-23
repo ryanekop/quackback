@@ -1,5 +1,5 @@
 import { IntegrationHeader } from './integration-header'
-import type { IntegrationCatalogEntry } from '@/lib/server/integrations/types'
+import type { IntegrationCatalogEntry } from '@/lib/shared/integration-types'
 
 interface ComingSoonIntegrationProps {
   catalog: IntegrationCatalogEntry

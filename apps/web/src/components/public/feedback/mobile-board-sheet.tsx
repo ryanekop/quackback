@@ -6,7 +6,7 @@ import { ListBulletIcon, ChatBubbleLeftIcon, Squares2X2Icon } from '@heroicons/r
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/shared/utils'
-import type { BoardWithStats } from '@/lib/server/domains/boards'
+import type { BoardWithStats } from '@/lib/shared/types'
 
 interface MobileBoardSheetProps {
   boards: BoardWithStats[]

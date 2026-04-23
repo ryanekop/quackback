@@ -4,7 +4,7 @@ import { ArrowPathIcon } from '@heroicons/react/24/solid'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { FormError } from '@/components/shared/form-error'
-import { authClient } from '@/lib/server/auth/client'
+import { authClient } from '@/lib/client/auth-client'
 import { setPasswordFn } from '@/lib/server/functions/invitations'
 
 export function PasswordForm() {

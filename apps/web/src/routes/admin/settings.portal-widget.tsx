@@ -37,7 +37,7 @@ import {
 import { settingsQueries } from '@/lib/client/queries/settings'
 import { adminQueries } from '@/lib/client/queries/admin'
 import { updateWidgetConfigFn, regenerateWidgetSecretFn } from '@/lib/server/functions/settings'
-import type { FeatureFlags } from '@/lib/server/domains/settings/settings.types'
+import type { FeatureFlags } from '@/lib/shared/types/settings'
 
 export const Route = createFileRoute('/admin/settings/portal-widget')({
   loader: async ({ context }) => {
@@ -635,7 +635,9 @@ function WidgetInstallation({
   const [activeTab, setActiveTab] = useState('snippet')
 
   // Persisted state
-  const [verifiedIdentityOnly, setVerifiedIdentityOnly] = useState(config.identifyVerification ?? false)
+  const [verifiedIdentityOnly, setVerifiedIdentityOnly] = useState(
+    config.identifyVerification ?? false
+  )
   const [currentSecret, setCurrentSecret] = useState(secret)
   const [secretVisible, setSecretVisible] = useState(false)
   const [copiedSecret, setCopiedSecret] = useState(false)
@@ -768,7 +770,9 @@ function WidgetInstallation({
               {/* Verified identity toggle */}
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-xs font-medium text-foreground">Verified identity only</span>
+                  <span className="text-xs font-medium text-foreground">
+                    Verified identity only
+                  </span>
                   <p className="text-[11px] text-muted-foreground">
                     Disable inline email capture and require your app to sign each user
                   </p>

@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { deleteWebhookFn } from '@/lib/server/functions/webhooks'
-import type { Webhook } from '@/lib/server/domains/webhooks'
+import type { Webhook } from '@/lib/shared/types'
 
 interface DeleteWebhookDialogProps {
   webhook: Webhook

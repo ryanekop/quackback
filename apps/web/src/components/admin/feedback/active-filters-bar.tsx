@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { FilterChip, type FilterOption } from '@/components/shared/filter-chip'
 import type { InboxFilters } from './use-inbox-filters'
 import type { Board, Tag as TagType, PostStatusEntity } from '@/lib/shared/db-types'
-import type { TeamMember } from '@/lib/server/domains/principals'
+import type { TeamMember } from '@/lib/shared/types'
 import type { SegmentListItem } from '@/lib/client/hooks/use-segments-queries'
 
 interface ActiveFilter {

@@ -9,7 +9,7 @@ import { GitHubConnectionActions } from '@/components/admin/settings/integration
 import { GitHubConfig } from '@/components/admin/settings/integrations/github/github-config'
 import { Button } from '@/components/ui/button'
 import { GitHubIcon } from '@/components/icons/integration-icons'
-import { githubCatalog } from '@/lib/server/integrations/github/catalog'
+import { githubCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/github')({
   loader: async ({ context }) => {

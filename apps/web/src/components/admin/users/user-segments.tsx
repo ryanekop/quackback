@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { XMarkIcon, BoltIcon, PlusIcon } from '@heroicons/react/24/solid'
 import { cn } from '@/lib/shared/utils'
-import type { UserSegmentSummary } from '@/lib/server/domains/users/user.types'
+import type { UserSegmentSummary } from '@/lib/shared/types'
 import type { SegmentId, PrincipalId } from '@quackback/ids'
 import { useRemoveUsersFromSegment, useAssignUsersToSegment } from '@/lib/client/mutations'
 import { useSegments } from '@/lib/client/hooks/use-segments-queries'

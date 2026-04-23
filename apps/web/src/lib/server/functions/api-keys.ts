@@ -5,15 +5,7 @@
 import { z } from 'zod'
 import { createServerFn } from '@tanstack/react-start'
 import { requireAuth } from './auth-helpers'
-import {
-  listApiKeys,
-  getApiKeyById,
-  createApiKey,
-  updateApiKeyName,
-  rotateApiKey,
-  revokeApiKey,
-  type ApiKeyId,
-} from '@/lib/server/domains/api-keys/api-key.service'
+import type { ApiKeyId } from '@/lib/server/domains/api-keys/api-key.service'
 
 // ============================================
 // Schemas
@@ -64,6 +56,7 @@ export const fetchApiKeys = createServerFn({ method: 'GET' }).handler(async () =
     // Only admins can manage API keys
     await requireAuth({ roles: ['admin'] })
 
+    const { listApiKeys } = await import('@/lib/server/domains/api-keys/api-key.service')
     const keys = await listApiKeys()
     console.log(`[fn:api-keys] fetchApiKeys: count=${keys.length}`)
     return keys
@@ -83,6 +76,7 @@ export const fetchApiKey = createServerFn({ method: 'GET' })
     try {
       await requireAuth({ roles: ['admin'] })
 
+      const { getApiKeyById } = await import('@/lib/server/domains/api-keys/api-key.service')
       const key = await getApiKeyById(data.id as ApiKeyId)
       console.log(`[fn:api-keys] fetchApiKey: found=${!!key}`)
       return key
@@ -107,6 +101,7 @@ export const createApiKeyFn = createServerFn({ method: 'POST' })
     try {
       const auth = await requireAuth({ roles: ['admin'] })
 
+      const { createApiKey } = await import('@/lib/server/domains/api-keys/api-key.service')
       const result = await createApiKey(
         {
           name: data.name,
@@ -132,6 +127,7 @@ export const updateApiKeyFn = createServerFn({ method: 'POST' })
     try {
       await requireAuth({ roles: ['admin'] })
 
+      const { updateApiKeyName } = await import('@/lib/server/domains/api-keys/api-key.service')
       const key = await updateApiKeyName(data.id as ApiKeyId, data.name)
       console.log(`[fn:api-keys] updateApiKeyFn: updated id=${key.id}`)
       return key
@@ -152,6 +148,7 @@ export const rotateApiKeyFn = createServerFn({ method: 'POST' })
     try {
       await requireAuth({ roles: ['admin'] })
 
+      const { rotateApiKey } = await import('@/lib/server/domains/api-keys/api-key.service')
       const result = await rotateApiKey(data.id as ApiKeyId)
       console.log(`[fn:api-keys] rotateApiKeyFn: rotated id=${result.apiKey.id}`)
       return result
@@ -171,6 +168,7 @@ export const revokeApiKeyFn = createServerFn({ method: 'POST' })
     try {
       await requireAuth({ roles: ['admin'] })
 
+      const { revokeApiKey } = await import('@/lib/server/domains/api-keys/api-key.service')
       await revokeApiKey(data.id as ApiKeyId)
       console.log(`[fn:api-keys] revokeApiKeyFn: revoked`)
       return { id: data.id as ApiKeyId }

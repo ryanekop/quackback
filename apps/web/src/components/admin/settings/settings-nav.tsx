@@ -20,7 +20,7 @@ import {
   TagIcon,
 } from '@heroicons/react/24/solid'
 import { cn } from '@/lib/shared/utils'
-import type { FeatureFlags } from '@/lib/server/domains/settings/settings.types'
+import type { FeatureFlags } from '@/lib/shared/types'
 
 interface NavItem {
   label: string

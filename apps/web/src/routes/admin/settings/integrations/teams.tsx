@@ -9,7 +9,7 @@ import { TeamsConnectionActions } from '@/components/admin/settings/integrations
 import { TeamsConfig } from '@/components/admin/settings/integrations/teams/teams-config'
 import { Button } from '@/components/ui/button'
 import { TeamsIcon } from '@/components/icons/integration-icons'
-import { teamsCatalog } from '@/lib/server/integrations/teams/catalog'
+import { teamsCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/teams')({
   loader: async ({ context }) => {

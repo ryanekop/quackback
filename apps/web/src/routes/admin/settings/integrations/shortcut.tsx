@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { ShortcutConnectionActions } from '@/components/admin/settings/integrations/shortcut/shortcut-connection-actions'
 import { ShortcutConfig } from '@/components/admin/settings/integrations/shortcut/shortcut-config'
 import { ShortcutIcon } from '@/components/icons/integration-icons'
-import { shortcutCatalog } from '@/lib/server/integrations/shortcut/catalog'
+import { shortcutCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/shortcut')({
   loader: async ({ context }) => {

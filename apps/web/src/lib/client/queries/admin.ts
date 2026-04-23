@@ -31,7 +31,7 @@ import {
 } from '@/lib/server/functions/posts'
 import { fetchMergePreviewFn } from '@/lib/server/functions/post-merge'
 import { fetchPublicStatuses } from '@/lib/server/functions/portal'
-import type { PortalUserListParams } from '@/lib/server/domains/users/user.types'
+import type { PortalUserListParams } from '@/lib/shared/types'
 
 /**
  * Inbox/Feedback filter params

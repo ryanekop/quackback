@@ -9,7 +9,7 @@ import { JiraConnectionActions } from '@/components/admin/settings/integrations/
 import { JiraConfig } from '@/components/admin/settings/integrations/jira/jira-config'
 import { Button } from '@/components/ui/button'
 import { JiraIcon } from '@/components/icons/integration-icons'
-import { jiraCatalog } from '@/lib/server/integrations/jira/catalog'
+import { jiraCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/jira')({
   loader: async ({ context }) => {

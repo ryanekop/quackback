@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
 import { feedbackQueries } from '@/lib/client/queries/feedback'
 import { TabStrip, type TabStripItem } from '@/components/admin/tab-strip'
-import type { FeatureFlags } from '@/lib/server/domains/settings/settings.types'
+import type { FeatureFlags } from '@/lib/shared/types/settings'
 
 const searchSchema = z.object({
   board: z.array(z.string()).optional(),

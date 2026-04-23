@@ -24,7 +24,7 @@ import { votedPostsKeys } from '@/lib/client/hooks/use-portal-posts-query'
 import type { PostDetails } from '@/lib/shared/types'
 import type { PostListItem, InboxPostListResult, Tag } from '@/lib/shared/db-types'
 import type { PrincipalId, PostId, StatusId, TagId, BoardId } from '@quackback/ids'
-import type { CreatePostInput } from '@/lib/server/domains/posts'
+import type { CreatePostInput } from '@/lib/shared/types'
 
 // ============================================================================
 // Types

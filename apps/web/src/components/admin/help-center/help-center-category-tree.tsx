@@ -3,10 +3,7 @@ import { ChevronRightIcon } from '@heroicons/react/20/solid'
 import { CategoryIcon } from '@/components/help-center/category-icon'
 import { PlusIcon, PencilIcon, TrashIcon, FolderPlusIcon } from '@heroicons/react/16/solid'
 import { cn } from '@/lib/shared/utils'
-import {
-  buildAncestorChain,
-  MAX_CATEGORY_DEPTH,
-} from '@/lib/server/domains/help-center/category-tree'
+import { buildAncestorChain, MAX_CATEGORY_DEPTH } from '@/lib/shared/help-center-tree'
 import type { HelpCenterCategoryId } from '@quackback/ids'
 import { formatCategoryCount } from './category-count'
 

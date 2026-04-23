@@ -6,7 +6,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { PostId, PrincipalId } from '@quackback/ids'
-import type { SubscriptionLevel } from '@/lib/server/domains/subscriptions/subscription.types'
+import type { SubscriptionLevel } from '@/lib/shared/types'
 import { adminUpdateVoterSubscriptionFn } from '@/lib/server/functions/subscriptions'
 
 export function useUpdateVoterSubscription(postId: PostId) {

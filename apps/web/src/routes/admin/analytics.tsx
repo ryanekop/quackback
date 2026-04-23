@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { AnalyticsPage } from '@/components/admin/analytics/analytics-page'
-import type { FeatureFlags } from '@/lib/server/domains/settings/settings.types'
+import type { FeatureFlags } from '@/lib/shared/types/settings'
 
 export const Route = createFileRoute('/admin/analytics')({
   component: AnalyticsRoute,

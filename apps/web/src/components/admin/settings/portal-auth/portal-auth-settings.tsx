@@ -15,10 +15,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Badge } from '@/components/ui/badge'
 import { updatePortalConfigFn } from '@/lib/server/functions/settings'
 import { AUTH_PROVIDER_ICON_MAP } from '@/components/icons/social-provider-icons'
-import { AUTH_PROVIDERS } from '@/lib/server/auth/auth-providers'
+import { AUTH_PROVIDERS } from '@/lib/shared/auth-providers'
 import { cn } from '@/lib/shared/utils'
 import { AuthProviderCredentialsDialog } from './auth-provider-credentials-dialog'
-import type { PortalAuthMethods } from '@/lib/server/domains/settings'
+import type { PortalAuthMethods } from '@/lib/shared/types'
 
 interface PortalAuthSettingsProps {
   initialConfig: {

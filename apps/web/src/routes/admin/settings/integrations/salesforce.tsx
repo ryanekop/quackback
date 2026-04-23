@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { SalesforceConnectionActions } from '@/components/admin/settings/integrations/salesforce/salesforce-connection-actions'
 import { SalesforceConfig } from '@/components/admin/settings/integrations/salesforce/salesforce-config'
 import { SalesforceIcon } from '@/components/icons/integration-icons'
-import { salesforceCatalog } from '@/lib/server/integrations/salesforce/catalog'
+import { salesforceCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/salesforce')({
   loader: async ({ context }) => {

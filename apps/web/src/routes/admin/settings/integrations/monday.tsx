@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { MondayConnectionActions } from '@/components/admin/settings/integrations/monday/monday-connection-actions'
 import { MondayConfig } from '@/components/admin/settings/integrations/monday/monday-config'
 import { MondayIcon } from '@/components/icons/integration-icons'
-import { mondayCatalog } from '@/lib/server/integrations/monday/catalog'
+import { mondayCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/monday')({
   loader: async ({ context }) => {

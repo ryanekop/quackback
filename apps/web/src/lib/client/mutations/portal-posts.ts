@@ -17,7 +17,7 @@ import {
   postPermissionsKeys,
 } from '@/lib/client/hooks/use-portal-posts-query'
 import { portalDetailQueries, type PublicPostDetailView } from '@/lib/client/queries/portal-detail'
-import type { PublicPostListItem } from '@/lib/server/domains/posts'
+import type { PublicPostListItem } from '@/lib/shared/types'
 import type { PostId, BoardId, StatusId } from '@quackback/ids'
 
 // ============================================================================

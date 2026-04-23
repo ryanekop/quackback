@@ -9,7 +9,7 @@ import { ClickUpConnectionActions } from '@/components/admin/settings/integratio
 import { ClickUpConfig } from '@/components/admin/settings/integrations/clickup/clickup-config'
 import { Button } from '@/components/ui/button'
 import { ClickUpIcon } from '@/components/icons/integration-icons'
-import { clickupCatalog } from '@/lib/server/integrations/clickup/catalog'
+import { clickupCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/clickup')({
   loader: async ({ context }) => {

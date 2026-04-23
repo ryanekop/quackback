@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { BackLink } from '@/components/ui/back-link'
 import { Badge } from '@/components/ui/badge'
 import { DocsLink } from '@/components/ui/docs-link'
-import type { IntegrationCatalogEntry } from '@/lib/server/integrations/types'
+import type { IntegrationCatalogEntry } from '@/lib/shared/integration-types'
 
 interface IntegrationHeaderProps {
   catalog: IntegrationCatalogEntry

@@ -8,7 +8,7 @@ import { PlatformCredentialsDialog } from '@/components/admin/settings/integrati
 import { HubSpotConnectionActions } from '@/components/admin/settings/integrations/hubspot/hubspot-connection-actions'
 import { Button } from '@/components/ui/button'
 import { HubSpotIcon } from '@/components/icons/integration-icons'
-import { hubspotCatalog } from '@/lib/server/integrations/hubspot/catalog'
+import { hubspotCatalog } from '@/lib/shared/integration-catalog'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
 
 export const Route = createFileRoute('/admin/settings/integrations/hubspot')({

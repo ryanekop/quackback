@@ -12,7 +12,7 @@ import {
 import { getSetupState, isOnboardingComplete } from '@/lib/shared/db-types'
 import appCss from '../globals.css?url'
 import { getBootstrapData, type BootstrapData } from '@/lib/server/functions/bootstrap'
-import type { TenantSettings } from '@/lib/server/domains/settings'
+import type { TenantSettings } from '@/lib/shared/types/settings'
 import { ThemeProvider } from '@/components/theme-provider'
 import { DefaultErrorPage } from '@/components/shared/error-page'
 import { OttHandler } from '@/components/shared/ott-handler'

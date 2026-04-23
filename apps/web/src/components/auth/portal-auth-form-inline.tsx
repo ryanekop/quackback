@@ -16,7 +16,7 @@ import {
   type OAuthProviderEntry,
 } from '@/components/auth/oauth-buttons'
 import { openAuthPopup, usePopupTracker } from '@/lib/client/hooks/use-auth-broadcast'
-import { authClient } from '@/lib/server/auth/client'
+import { authClient } from '@/lib/client/auth-client'
 
 interface OrgAuthConfig {
   found: boolean

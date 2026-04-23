@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { StripeConnectionActions } from '@/components/admin/settings/integrations/stripe/stripe-connection-actions'
 import { StripeConfig } from '@/components/admin/settings/integrations/stripe/stripe-config'
 import { StripeIcon } from '@/components/icons/integration-icons'
-import { stripeCatalog } from '@/lib/server/integrations/stripe/catalog'
+import { stripeCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/stripe')({
   loader: async ({ context }) => {

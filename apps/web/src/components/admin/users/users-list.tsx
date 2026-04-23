@@ -11,7 +11,7 @@ import { cn } from '@/lib/shared/utils'
 import { UserCard } from '@/components/admin/users/user-card'
 import { UsersActiveFiltersBar } from '@/components/admin/users/users-active-filters-bar'
 import { MobileSegmentSelector } from '@/components/admin/users/users-segment-nav'
-import type { PortalUserListItemView } from '@/lib/server/domains/users'
+import type { PortalUserListItemView } from '@/lib/shared/types'
 import type { UsersFilters } from '@/lib/shared/types'
 import type { SegmentListItem } from '@/lib/client/hooks/use-segments-queries'
 

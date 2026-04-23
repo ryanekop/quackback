@@ -22,7 +22,7 @@ import { useAuthBroadcast } from '@/lib/client/hooks/use-auth-broadcast'
 import { useSimilarPosts } from '@/lib/client/hooks/use-similar-posts'
 import { useEnsureAnonSession } from '@/lib/client/hooks/use-ensure-anon-session'
 import { SimilarPostsCard } from '@/components/public/similar-posts-card'
-import { signOut } from '@/lib/server/auth/client'
+import { signOut } from '@/lib/client/auth-client'
 import type { JSONContent } from '@tiptap/react'
 
 interface BoardOption {

@@ -1,6 +1,10 @@
 import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query'
-import type { RoadmapPost, RoadmapPostListResult } from '@/lib/server/domains/posts'
-import type { RoadmapPostsListResult, RoadmapPostEntry } from '@/lib/server/domains/roadmaps'
+import type {
+  RoadmapPost,
+  RoadmapPostListResult,
+  RoadmapPostsListResult,
+  RoadmapPostEntry,
+} from '@/lib/shared/types'
 import type { RoadmapId, StatusId } from '@quackback/ids'
 import type { RoadmapFilters } from '@/lib/shared/types'
 import { getRoadmapPostsFn } from '@/lib/server/functions/roadmaps'

@@ -3,10 +3,6 @@
  *
  * Import types from here to avoid circular dependencies:
  *   import type { InboxFilters, PostDetails } from '@/lib/shared/types'
- *
- * Types are organized by domain:
- * - filters.ts: Filter types for list views (inbox, portal, users)
- * - inbox.ts: Admin inbox post detail types
  */
 
 // Filter types
@@ -27,3 +23,52 @@ export type {
   CurrentUser,
   MergedPostItem,
 } from './inbox'
+
+// Post domain types
+export type { CreatePostInput, AdminEditPostInput, PublicPostListItem } from './posts'
+
+// User domain types
+export type {
+  UserSegmentSummary,
+  PortalUserListParams,
+  PortalUserListItemView,
+  PortalUserListResultView,
+  PortalUserDetail,
+  EngagedPost,
+} from './users'
+
+// Subscription types
+export type { SubscriptionLevel } from './subscriptions'
+
+// Principal types
+export type { TeamMember } from './principals'
+
+// Board types
+export type { BoardWithStats } from './boards'
+
+// Roadmap types
+export type {
+  RoadmapPost,
+  RoadmapPostListResult,
+  RoadmapPostsListResult,
+  RoadmapPostEntry,
+} from './roadmaps'
+
+// Webhook types
+export type { Webhook } from './webhooks'
+
+// API key types
+export type { ApiKey } from './api-keys'
+
+// Settings types
+export type { PortalAuthMethods, FeatureFlags } from './settings'
+export { FEATURE_FLAG_REGISTRY } from './settings'
+
+// Import types
+export type { ImportResult } from './import'
+
+// Activity types
+export type { ActivityType } from './activity'
+
+// Notification types
+export type { NotificationType } from './notifications'

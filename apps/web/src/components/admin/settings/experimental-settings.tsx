@@ -4,10 +4,7 @@ import { useRouteContext } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import {
-  FEATURE_FLAG_REGISTRY,
-  type FeatureFlags,
-} from '@/lib/server/domains/settings/settings.types'
+import { FEATURE_FLAG_REGISTRY, type FeatureFlags } from '@/lib/shared/types'
 import { updateFeatureFlagsFn } from '@/lib/server/functions/feature-flags'
 
 export function ExperimentalSettings() {

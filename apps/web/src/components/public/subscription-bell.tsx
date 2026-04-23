@@ -17,7 +17,7 @@ import {
   updateSubscriptionLevelFn,
 } from '@/lib/server/functions/subscriptions'
 import type { PostId } from '@quackback/ids'
-import type { SubscriptionLevel } from '@/lib/server/domains/subscriptions/subscription.types'
+import type { SubscriptionLevel } from '@/lib/shared/types'
 
 interface SubscriptionStatus {
   subscribed: boolean

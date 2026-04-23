@@ -11,7 +11,7 @@ import {
   sql,
 } from '@/lib/server/db'
 import type { IntegrationId, BoardId } from '@quackback/ids'
-import { cacheDel, CACHE_KEYS } from '@/lib/server/redis'
+// cacheDel/CACHE_KEYS are imported dynamically inside handlers to keep ioredis out of the client bundle
 
 // ============================================
 // Schemas
@@ -102,6 +102,7 @@ export const updateIntegrationFn = createServerFn({ method: 'POST' })
         })
     }
 
+    const { cacheDel, CACHE_KEYS } = await import('@/lib/server/redis')
     await cacheDel(CACHE_KEYS.INTEGRATION_MAPPINGS)
     console.log(`[fn:integrations] updateIntegrationFn: updated id=${data.id}`)
     return { success: true }
@@ -155,6 +156,7 @@ export const deleteIntegrationFn = createServerFn({ method: 'POST' })
 
     await db.delete(integrations).where(eq(integrations.id, integrationId))
 
+    const { cacheDel, CACHE_KEYS } = await import('@/lib/server/redis')
     await cacheDel(CACHE_KEYS.INTEGRATION_MAPPINGS)
     console.log(`[fn:integrations] deleteIntegrationFn: deleted id=${data.id}`)
     return { id: data.id }
@@ -232,6 +234,7 @@ export const addNotificationChannelFn = createServerFn({ method: 'POST' })
         },
       })
 
+    const { cacheDel, CACHE_KEYS } = await import('@/lib/server/redis')
     await cacheDel(CACHE_KEYS.INTEGRATION_MAPPINGS)
     console.log(`[fn:integrations] addNotificationChannelFn: added ${data.events.length} mappings`)
     return { success: true }
@@ -288,6 +291,7 @@ export const updateNotificationChannelFn = createServerFn({ method: 'POST' })
         )
       )
 
+    const { cacheDel, CACHE_KEYS } = await import('@/lib/server/redis')
     await cacheDel(CACHE_KEYS.INTEGRATION_MAPPINGS)
     console.log(`[fn:integrations] updateNotificationChannelFn: updated`)
     return { success: true }
@@ -313,6 +317,7 @@ export const removeNotificationChannelFn = createServerFn({ method: 'POST' })
         )
       )
 
+    const { cacheDel, CACHE_KEYS } = await import('@/lib/server/redis')
     await cacheDel(CACHE_KEYS.INTEGRATION_MAPPINGS)
     console.log(`[fn:integrations] removeNotificationChannelFn: removed`)
     return { success: true }

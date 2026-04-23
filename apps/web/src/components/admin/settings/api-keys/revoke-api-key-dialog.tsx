@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import { revokeApiKeyFn } from '@/lib/server/functions/api-keys'
-import type { ApiKey } from '@/lib/server/domains/api-keys'
+import type { ApiKey } from '@/lib/shared/types'
 
 interface RevokeApiKeyDialogProps {
   open: boolean

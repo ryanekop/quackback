@@ -12,7 +12,7 @@ import { useSegments } from '@/lib/client/hooks/use-segments-queries'
 import { mergeSuggestionQueries } from '@/lib/client/queries/signals'
 import type { CurrentUser } from '@/lib/shared/types'
 import type { Board, Tag, InboxPostListResult, PostStatusEntity } from '@/lib/shared/db-types'
-import type { TeamMember } from '@/lib/server/domains/principals'
+import type { TeamMember } from '@/lib/shared/types'
 import type { PostId } from '@quackback/ids'
 import { saveNavigationContext } from '@/components/admin/feedback/detail/use-navigation-context'
 

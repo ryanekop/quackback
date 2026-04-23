@@ -9,7 +9,7 @@ import { NotionConnectionActions } from '@/components/admin/settings/integration
 import { NotionConfig } from '@/components/admin/settings/integrations/notion/notion-config'
 import { Button } from '@/components/ui/button'
 import { NotionIcon } from '@/components/icons/integration-icons'
-import { notionCatalog } from '@/lib/server/integrations/notion/catalog'
+import { notionCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/notion')({
   loader: async ({ context }) => {

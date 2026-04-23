@@ -8,7 +8,7 @@ import { PlatformCredentialsDialog } from '@/components/admin/settings/integrati
 import { ZendeskConnectionActions } from '@/components/admin/settings/integrations/zendesk/zendesk-connection-actions'
 import { Button } from '@/components/ui/button'
 import { ZendeskIcon } from '@/components/icons/integration-icons'
-import { zendeskCatalog } from '@/lib/server/integrations/zendesk/catalog'
+import { zendeskCatalog } from '@/lib/shared/integration-catalog'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
 
 export const Route = createFileRoute('/admin/settings/integrations/zendesk')({

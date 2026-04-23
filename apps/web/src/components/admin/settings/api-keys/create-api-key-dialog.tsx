@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { createApiKeyFn } from '@/lib/server/functions/api-keys'
-import type { ApiKey } from '@/lib/server/domains/api-keys'
+import type { ApiKey } from '@/lib/shared/types'
 
 interface CreateApiKeyDialogProps {
   open: boolean

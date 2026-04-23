@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/solid'
 import { Button } from '@/components/ui/button'
 import { CSV_TEMPLATE } from '@/lib/shared/schemas/import'
-import type { ImportResult } from '@/lib/server/domains/import/types'
+import type { ImportResult } from '@/lib/shared/types'
 
 const errorResponseSchema = z.object({
   error: z.string().optional(),

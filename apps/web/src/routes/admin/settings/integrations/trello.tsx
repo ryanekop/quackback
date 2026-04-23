@@ -9,7 +9,7 @@ import { TrelloConnectionActions } from '@/components/admin/settings/integration
 import { TrelloConfig } from '@/components/admin/settings/integrations/trello/trello-config'
 import { Button } from '@/components/ui/button'
 import { TrelloIcon } from '@/components/icons/integration-icons'
-import { trelloCatalog } from '@/lib/server/integrations/trello/catalog'
+import { trelloCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/trello')({
   loader: async ({ context }) => {

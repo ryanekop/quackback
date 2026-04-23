@@ -28,12 +28,6 @@ import {
   getCustomCss,
   updateCustomCss,
 } from '@/lib/server/domains/settings/settings.media'
-import {
-  getWidgetConfig,
-  updateWidgetConfig,
-  getWidgetSecret,
-  regenerateWidgetSecret,
-} from '@/lib/server/domains/settings/settings.widget'
 import { getPublicUrlOrNull } from '@/lib/server/storage/s3'
 import { requireAuth } from './auth-helpers'
 import { getSession } from '@/lib/server/auth/session'
@@ -412,6 +406,7 @@ export const fetchWidgetConfig = createServerFn({ method: 'GET' }).handler(async
   console.log(`[fn:settings] fetchWidgetConfig`)
   try {
     await requireAuth({ roles: ['admin'] })
+    const { getWidgetConfig } = await import('@/lib/server/domains/settings/settings.widget')
     return await getWidgetConfig()
   } catch (error) {
     console.error(`[fn:settings] fetchWidgetConfig failed:`, error)
@@ -423,6 +418,7 @@ export const fetchWidgetSecret = createServerFn({ method: 'GET' }).handler(async
   console.log(`[fn:settings] fetchWidgetSecret`)
   try {
     await requireAuth({ roles: ['admin'] })
+    const { getWidgetSecret } = await import('@/lib/server/domains/settings/settings.widget')
     return await getWidgetSecret()
   } catch (error) {
     console.error(`[fn:settings] fetchWidgetSecret failed:`, error)
@@ -453,6 +449,7 @@ export const updateWidgetConfigFn = createServerFn({ method: 'POST' })
     )
     try {
       await requireAuth({ roles: ['admin'] })
+      const { updateWidgetConfig } = await import('@/lib/server/domains/settings/settings.widget')
       return await updateWidgetConfig(data)
     } catch (error) {
       console.error(`[fn:settings] updateWidgetConfigFn failed:`, error)
@@ -464,6 +461,7 @@ export const regenerateWidgetSecretFn = createServerFn({ method: 'POST' }).handl
   console.log(`[fn:settings] regenerateWidgetSecretFn`)
   try {
     await requireAuth({ roles: ['admin'] })
+    const { regenerateWidgetSecret } = await import('@/lib/server/domains/settings/settings.widget')
     return await regenerateWidgetSecret()
   } catch (error) {
     console.error(`[fn:settings] regenerateWidgetSecretFn failed:`, error)

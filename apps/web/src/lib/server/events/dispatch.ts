@@ -6,11 +6,8 @@
  * Errors are caught and logged rather than propagated to the caller.
  */
 
-import { randomUUID } from 'crypto'
-
 import type { BoardId, ChangelogId, CommentId, PostId, PrincipalId, UserId } from '@quackback/ids'
 
-import { processEvent } from './process'
 import type { EventActor, EventData, EventPostRef } from './types.js'
 
 // Re-export EventActor for API routes that need to construct actor objects
@@ -74,7 +71,7 @@ export interface CommentPostInput {
  * Build common event envelope fields.
  */
 function eventEnvelope(actor: EventActor) {
-  return { id: randomUUID(), timestamp: new Date().toISOString(), actor } as const
+  return { id: globalThis.crypto.randomUUID(), timestamp: new Date().toISOString(), actor } as const
 }
 
 /**
@@ -85,6 +82,7 @@ function eventEnvelope(actor: EventActor) {
 async function dispatchEvent(event: EventData): Promise<void> {
   console.log(`[Event] Dispatching ${event.type} event ${event.id}`)
   try {
+    const { processEvent } = await import('./process')
     await processEvent(event)
   } catch (error) {
     console.error(`[Event] Failed to process ${event.type} event ${event.id}:`, error)

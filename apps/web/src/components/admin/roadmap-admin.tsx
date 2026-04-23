@@ -24,7 +24,7 @@ import { useSegments } from '@/lib/client/hooks/use-segments-queries'
 import { adminQueries } from '@/lib/client/queries/admin'
 import { Route } from '@/routes/admin/roadmap'
 import type { PostStatusEntity } from '@/lib/shared/db-types'
-import type { RoadmapPostEntry } from '@/lib/server/domains/roadmaps'
+import type { RoadmapPostEntry } from '@/lib/shared/types'
 import type { StatusId, PostId, RoadmapId } from '@quackback/ids'
 
 interface RoadmapAdminProps {

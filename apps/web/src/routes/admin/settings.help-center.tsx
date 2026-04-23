@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { settingsQueries } from '@/lib/client/queries/settings'
 import { updateHelpCenterConfigFn } from '@/lib/server/functions/help-center-settings'
-import type { HelpCenterConfig } from '@/lib/server/domains/settings/settings.types'
+import type { HelpCenterConfig } from '@/lib/shared/types/settings'
 
 export const Route = createFileRoute('/admin/settings/help-center')({
   loader: async ({ context }) => {

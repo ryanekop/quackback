@@ -6,14 +6,7 @@ import { z } from 'zod'
 import { createServerFn } from '@tanstack/react-start'
 import { type PostId, type PrincipalId } from '@quackback/ids'
 import { requireAuth } from './auth-helpers'
-import {
-  getSubscriptionStatus,
-  subscribeToPost,
-  unsubscribeFromPost,
-  updateSubscriptionLevel,
-  processUnsubscribeToken,
-  type SubscriptionLevel,
-} from '@/lib/server/domains/subscriptions/subscription.service'
+import type { SubscriptionLevel } from '@/lib/server/domains/subscriptions/subscription.service'
 import { db, votes, eq, and } from '@/lib/server/db'
 
 const getSubscriptionStatusSchema = z.object({
@@ -48,6 +41,8 @@ export const fetchSubscriptionStatus = createServerFn({ method: 'GET' })
     try {
       const auth = await requireAuth({ roles: ['admin', 'member', 'user'] })
 
+      const { getSubscriptionStatus } =
+        await import('@/lib/server/domains/subscriptions/subscription.service')
       const result = await getSubscriptionStatus(auth.principal.id, data.postId as PostId)
       console.log(`[fn:subscriptions] fetchSubscriptionStatus: level=${result.level}`)
       return result
@@ -65,6 +60,8 @@ export const subscribeToPostFn = createServerFn({ method: 'POST' })
     try {
       const auth = await requireAuth({ roles: ['admin', 'member', 'user'] })
 
+      const { subscribeToPost } =
+        await import('@/lib/server/domains/subscriptions/subscription.service')
       await subscribeToPost(auth.principal.id, data.postId as PostId, data.reason || 'manual', {
         level: data.level as SubscriptionLevel,
       })
@@ -83,6 +80,8 @@ export const unsubscribeFromPostFn = createServerFn({ method: 'POST' })
     try {
       const auth = await requireAuth({ roles: ['admin', 'member', 'user'] })
 
+      const { unsubscribeFromPost } =
+        await import('@/lib/server/domains/subscriptions/subscription.service')
       await unsubscribeFromPost(auth.principal.id, data.postId as PostId)
       console.log(`[fn:subscriptions] unsubscribeFromPostFn: unsubscribed`)
       return { postId: data.postId }
@@ -101,6 +100,8 @@ export const updateSubscriptionLevelFn = createServerFn({ method: 'POST' })
     try {
       const auth = await requireAuth({ roles: ['admin', 'member', 'user'] })
 
+      const { updateSubscriptionLevel } =
+        await import('@/lib/server/domains/subscriptions/subscription.service')
       await updateSubscriptionLevel(
         auth.principal.id,
         data.postId as PostId,
@@ -135,6 +136,9 @@ export const adminUpdateVoterSubscriptionFn = createServerFn({ method: 'POST' })
       const targetPrincipalId = data.principalId as PrincipalId
       const targetPostId = data.postId as PostId
 
+      const { unsubscribeFromPost, subscribeToPost, updateSubscriptionLevel } =
+        await import('@/lib/server/domains/subscriptions/subscription.service')
+
       // Verify the principal actually has a vote on this post
       const [vote] = await db
         .select({ id: votes.id })
@@ -144,7 +148,6 @@ export const adminUpdateVoterSubscriptionFn = createServerFn({ method: 'POST' })
       if (!vote) {
         throw new Error('Principal does not have a vote on this post')
       }
-
       if (data.level === 'none') {
         await unsubscribeFromPost(targetPrincipalId, targetPostId)
       } else {
@@ -188,6 +191,8 @@ export const processUnsubscribeTokenFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<UnsubscribeResult> => {
     console.log(`[fn:subscriptions] processUnsubscribeTokenFn: token=${data.token.slice(0, 8)}...`)
     try {
+      const { processUnsubscribeToken } =
+        await import('@/lib/server/domains/subscriptions/subscription.service')
       const result = await processUnsubscribeToken(data.token)
 
       if (!result) {

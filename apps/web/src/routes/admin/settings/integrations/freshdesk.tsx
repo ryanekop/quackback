@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { FreshdeskConnectionActions } from '@/components/admin/settings/integrations/freshdesk/freshdesk-connection-actions'
 import { FreshdeskConfig } from '@/components/admin/settings/integrations/freshdesk/freshdesk-config'
 import { FreshdeskIcon } from '@/components/icons/integration-icons'
-import { freshdeskCatalog } from '@/lib/server/integrations/freshdesk/catalog'
+import { freshdeskCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/freshdesk')({
   loader: async ({ context }) => {

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { AUTH_PROVIDER_ICON_MAP } from '@/components/icons/social-provider-icons'
-import { AUTH_PROVIDERS } from '@/lib/server/auth/auth-providers'
+import { AUTH_PROVIDERS } from '@/lib/shared/auth-providers'
 import {
   openAuthPopup,
   useAuthBroadcast,
   usePopupTracker,
 } from '@/lib/client/hooks/use-auth-broadcast'
-import { authClient } from '@/lib/server/auth/client'
+import { authClient } from '@/lib/client/auth-client'
 
 export type OAuthProviderEntry = {
   id: string

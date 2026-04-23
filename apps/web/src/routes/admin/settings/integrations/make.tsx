@@ -6,7 +6,7 @@ import { IntegrationSetupCard } from '@/components/admin/settings/integrations/i
 import { MakeConnectionActions } from '@/components/admin/settings/integrations/make/make-connection-actions'
 import { MakeConfig } from '@/components/admin/settings/integrations/make/make-config'
 import { MakeIcon } from '@/components/icons/integration-icons'
-import { makeCatalog } from '@/lib/server/integrations/make/catalog'
+import { makeCatalog } from '@/lib/shared/integration-catalog'
 
 export const Route = createFileRoute('/admin/settings/integrations/make')({
   loader: async ({ context }) => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouterState } from '@tanstack/react-router'
-import { authClient } from '@/lib/server/auth/client'
+import { authClient } from '@/lib/client/auth-client'
 
 /**
  * Handles one-time token (OTT) session transfer from the widget to the portal.

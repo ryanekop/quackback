@@ -7,7 +7,7 @@
 
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import type { PrincipalId } from '@quackback/ids'
-import type { PortalUserListResultView, PortalUserListItemView } from '@/lib/server/domains/users'
+import type { PortalUserListResultView, PortalUserListItemView } from '@/lib/shared/types'
 import {
   createPortalUserFn,
   deletePortalUserFn,

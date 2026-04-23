@@ -23,10 +23,7 @@ import {
   fetchAzureDevOpsProjectsFn,
   fetchAzureDevOpsWorkItemTypesFn,
 } from '@/lib/server/integrations/azure-devops/functions'
-import type {
-  AzureDevOpsProject,
-  AzureDevOpsWorkItemType,
-} from '@/lib/server/integrations/azure-devops/api'
+import type { AzureDevOpsProject, AzureDevOpsWorkItemType } from '@/lib/shared/integration-types'
 
 interface EventMapping {
   id: string

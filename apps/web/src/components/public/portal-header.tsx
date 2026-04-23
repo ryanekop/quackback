@@ -6,7 +6,7 @@ import { useIntl, FormattedMessage } from 'react-intl'
 import { cn } from '@/lib/shared/utils'
 import { isTeamMember } from '@/lib/shared/roles'
 import { Button } from '@/components/ui/button'
-import { signOut } from '@/lib/server/auth/client'
+import { signOut } from '@/lib/client/auth-client'
 import {
   DropdownMenu,
   DropdownMenuContent,

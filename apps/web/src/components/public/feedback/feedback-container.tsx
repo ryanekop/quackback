@@ -9,7 +9,7 @@ import { FeedbackToolbar } from '@/components/public/feedback/feedback-toolbar'
 import { MobileBoardSheet } from '@/components/public/feedback/mobile-board-sheet'
 import { usePublicFilters } from '@/components/public/feedback/use-public-filters'
 import { PostCard } from '@/components/public/post-card'
-import type { BoardWithStats } from '@/lib/server/domains/boards'
+import type { BoardWithStats } from '@/lib/shared/types'
 import type { PostStatusEntity, Tag } from '@/lib/shared/db-types'
 import { useAuthBroadcast } from '@/lib/client/hooks/use-auth-broadcast'
 import {
@@ -17,7 +17,7 @@ import {
   usePublicPosts,
   useVotedPosts,
 } from '@/lib/client/hooks/use-portal-posts-query'
-import type { PublicPostListItem } from '@/lib/server/domains/posts'
+import type { PublicPostListItem } from '@/lib/shared/types'
 import { cn } from '@/lib/shared/utils'
 
 interface FeedbackContainerProps {
