@@ -14,7 +14,10 @@ function extractKey(url: URL): string | null {
 
 // Reads up to maxBytes from the request body stream, cancelling early if exceeded.
 // Returns null when the body exceeds the limit, avoiding full buffering of oversized payloads.
-async function readBodyWithLimit(request: Request, maxBytes: number): Promise<Uint8Array | null> {
+export async function readBodyWithLimit(
+  request: Request,
+  maxBytes: number
+): Promise<Uint8Array | null> {
   const reader = request.body?.getReader()
   if (!reader) return new Uint8Array(0)
 
