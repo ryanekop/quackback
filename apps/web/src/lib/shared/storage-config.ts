@@ -16,5 +16,5 @@ export function isAllowedImageType(contentType: string): boolean {
   return ALLOWED_IMAGE_TYPES.has(contentType)
 }
 
-/** Maximum allowed file size in bytes (5MB). */
-export const MAX_FILE_SIZE = 5 * 1024 * 1024
+/** Maximum allowed image upload size in bytes (2MB). */
+export const MAX_FILE_SIZE = 2 * 1024 * 1024

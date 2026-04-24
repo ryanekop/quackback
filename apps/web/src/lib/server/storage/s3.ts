@@ -349,9 +349,9 @@ export function isAllowedImageType(contentType: string): boolean {
 }
 
 /**
- * Maximum allowed file size in bytes (5MB).
+ * Maximum allowed image upload size in bytes (2MB).
  */
-export const MAX_FILE_SIZE = 5 * 1024 * 1024
+export const MAX_FILE_SIZE = 2 * 1024 * 1024
 
 /**
  * Validate and upload an image from a parsed multipart FormData body.
