@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { config } from '@/lib/server/config'
 import { getBridgeClientId, getBridgeIssuer } from '@/lib/server/bridge/oidc'
 
 export const Route = createFileRoute('/.well-known/quackback-bridge-openid-configuration')({
   server: {
     handlers: {
-      GET: async ({ request }) => {
-        const origin = new URL(request.url).origin
-        const issuer = getBridgeIssuer(origin)
+      GET: async () => {
+        const issuer = getBridgeIssuer(config.baseUrl)
         return Response.json({
           issuer,
           authorization_endpoint: `${issuer}/api/bridge/oauth/authorize`,

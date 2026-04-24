@@ -29,6 +29,7 @@ export const Route = createFileRoute('/api/bridge/launch')({
           const payload = JSON.stringify({
             providerId: 'custom-oidc',
             callbackURL,
+            errorCallbackURL: callbackURL,
             disableRedirect: true,
           })
 
