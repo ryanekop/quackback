@@ -13,6 +13,12 @@ import { oauthProvider } from '@better-auth/oauth-provider'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { generateId } from '@quackback/ids'
 import { config } from '@/lib/server/config'
+import {
+  getBridgeClientId,
+  getBridgeClientSecret,
+  getBridgeDiscoveryUrl,
+  isBridgeOidcEnabled,
+} from '@/lib/server/bridge/oidc'
 
 /** Temporary storage for magic link tokens during invitation flow */
 const pendingMagicLinkTokens = new Map<string, { token: string; timestamp: number }>()
@@ -68,6 +74,7 @@ async function createAuth() {
   const { getPlatformCredentials } =
     await import('@/lib/server/domains/platform-credentials/platform-credential.service')
   const { getAllAuthProviders } = await import('./auth-providers')
+  const baseURL = config.baseUrl
 
   // Build socialProviders config from DB-stored credentials
   const socialProviders: Record<string, Record<string, string>> = {}
@@ -116,8 +123,19 @@ async function createAuth() {
     }
   }
 
-  // BASE_URL is required for auth callbacks and redirects
-  const baseURL = config.baseUrl
+  if (isBridgeOidcEnabled() && getBridgeClientSecret()) {
+    const hasCustomOidc = genericOAuthConfigs.some((provider) => provider.providerId === 'custom-oidc')
+    if (!hasCustomOidc) {
+      genericOAuthConfigs.push({
+        providerId: 'custom-oidc',
+        clientId: getBridgeClientId(),
+        clientSecret: getBridgeClientSecret(),
+        discoveryUrl: getBridgeDiscoveryUrl(baseURL),
+        scopes: ['openid', 'email', 'profile'],
+      })
+      trustedProviders.push('custom-oidc')
+    }
+  }
 
   return betterAuth({
     // Use SECRET_KEY for auth signing (Better Auth defaults to BETTER_AUTH_SECRET)

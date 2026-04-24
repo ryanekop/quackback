@@ -37,7 +37,12 @@ import {
 async function getConfiguredAuthTypes(): Promise<Set<string>> {
   const { getConfiguredIntegrationTypes } =
     await import('@/lib/server/domains/platform-credentials/platform-credential.service')
-  return getConfiguredIntegrationTypes()
+  const configured = await getConfiguredIntegrationTypes()
+  const { getBridgeClientSecret, isBridgeOidcEnabled } = await import('@/lib/server/bridge/oidc')
+  if (isBridgeOidcEnabled() && getBridgeClientSecret()) {
+    configured.add('auth_custom-oidc')
+  }
+  return configured
 }
 
 function filterOAuthByCredentials(
@@ -89,6 +94,11 @@ async function getCustomProviderNames(
     if (displayName) {
       names[genericProviders[i].id] = displayName
     }
+  }
+
+  const { getBridgeProviderName, isBridgeOidcEnabled } = await import('@/lib/server/bridge/oidc')
+  if (isBridgeOidcEnabled() && oauth['custom-oidc']) {
+    names['custom-oidc'] = names['custom-oidc'] || getBridgeProviderName()
   }
 
   return Object.keys(names).length > 0 ? names : undefined
@@ -252,6 +262,11 @@ export async function getPublicPortalConfig(): Promise<PublicPortalConfig> {
       configuredTypes,
       passthroughKeys
     )
+    if (configuredTypes.has('auth_custom-oidc')) {
+      filteredOAuth['custom-oidc'] = true
+      filteredOAuth.password = false
+      filteredOAuth.email = false
+    }
     const customProviderNames = await getCustomProviderNames(filteredOAuth, configuredTypes)
     return {
       oauth: filteredOAuth,
