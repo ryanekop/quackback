@@ -360,6 +360,7 @@ export function PortalAuthFormInline({
     authConfig?.customProviderNames
   )
   const showOAuth = enabledProviders.length > 0
+  const bridgeAuthEnabled = authConfig?.oauth?.['custom-oidc'] === true
 
   // Loading invitation
   if (loadingInvitation) {
@@ -401,6 +402,8 @@ export function PortalAuthFormInline({
     showOAuth && (step === 'credentials' || step === 'email') && !invitation
   const hasCredentialForm = step === 'credentials' && passwordEnabled
   const hasEmailForm = step === 'email' && emailOtpEnabled
+  const showBridgeOnlyMessage =
+    bridgeAuthEnabled && !showOAuthOnDefault && !hasCredentialForm && !hasEmailForm && !invitation
 
   return (
     <div className="space-y-6">
@@ -454,6 +457,15 @@ export function PortalAuthFormInline({
             </div>
           )}
         </>
+      )}
+
+      {showBridgeOnlyMessage && (
+        <Alert>
+          <InformationCircleIcon className="h-4 w-4" />
+          <AlertDescription>
+            Sign in from ClientDesk or Fastpik, then open Feedback from inside the app.
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Password credentials form */}

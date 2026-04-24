@@ -15,6 +15,8 @@ export type OAuthProviderEntry = {
   type: 'social' | 'generic-oauth'
 }
 
+export const INTERNAL_OAUTH_PROVIDER_IDS = new Set(['custom-oidc'])
+
 /**
  * Get the OAuth redirect URL for a provider.
  * Handles routing between signIn.oauth2 (generic) and signIn.social (built-in).
@@ -149,7 +151,8 @@ export function getEnabledOAuthProviders(
   const result: OAuthProviderEntry[] = []
 
   for (const [key, enabled] of Object.entries(authConfig)) {
-    if (key === 'email' || key === 'password' || !enabled) continue
+    if (key === 'email' || key === 'password' || INTERNAL_OAUTH_PROVIDER_IDS.has(key) || !enabled)
+      continue
     const provider = providerMap.get(key)
     if (provider) {
       result.push({
